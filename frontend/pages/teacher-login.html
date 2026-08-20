@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Teacher Login | CloudAttend</title>
+
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+
+<body>
+
+    <!-- ========================================
+        M4 - STEP 1 - TEACHER LOGIN STRUCTURE
+    ======================================== -->
+
+    <main class="login-page">
+
+        <div class="login-container">
+
+            <div class="login-header">
+                <div class="logo-icon">CA</div>
+
+                <h1>Teacher Login</h1>
+
+                <p>
+                    Sign in to manage your attendance sessions.
+                </p>
+            </div>
+
+            <form class="login-form">
+
+                <div class="form-group">
+                    <label for="teacher-email">Email</label>
+
+                    <input
+                        type="email"
+                        id="teacher-email"
+                        placeholder="teacher@example.com"
+                        required
+                    >
+                </div>
+
+                <!-- ========================================
+    M4 - STEP 3 - PASSWORD FIELD
+======================================== -->
+
+<div class="form-group">
+    <label for="teacher-password">Password</label>
+
+    <input
+        type="password"
+        id="teacher-password"
+        placeholder="Enter your password"
+        required
+    >
+</div>
+
+                <button type="submit" class="btn btn-primary login-button">
+                    Sign In
+                </button>
+
+            </form>
+
+            <div class="login-footer">
+                <p>
+                    Are you a student?
+                    <a href="student-login.html">Student Login</a>
+                </p>
+
+                <a href="../index.html">← Back to CloudAttend</a>
+            </div>
+
+        </div>
+
+    </main>
+
+</body>
+
+</html>

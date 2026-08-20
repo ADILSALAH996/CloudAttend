@@ -130,3 +130,31 @@ Features, About, and Contact pages.
 ## Status
 
 M3 Completed
+
+
+## M4.1 — Teacher Login UI
+
+### Completed
+- Created the teacher login page at `frontend/pages/teacher-login.html`
+- Added CloudAttend branding and consistent visual styling
+- Added teacher email and password fields
+- Added browser-level required field validation
+- Added responsive login layout for smaller screens
+- Added navigation to Student Login
+- Added navigation back to the CloudAttend landing page
+- Kept authentication logic separate for later AWS Cognito integration
+
+### Concepts Learned
+- HTML form structure
+- Labels and form inputs
+- Password input types
+- Required field validation
+- CSS form styling
+- Responsive login layouts
+- Linking pages within the project
+
+### Architecture Decision
+The login UI is intentionally separated from authentication logic. Real teacher authentication will later be implemented using Amazon Cognito instead of storing or validating passwords manually in the frontend.
+
+### Status
+M4.1 — Teacher Login UI Completed
