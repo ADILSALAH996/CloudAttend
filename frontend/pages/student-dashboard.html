@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Student Dashboard | CloudAttend</title>
+
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+
+<body class="student-dashboard-page">
+
+    <header class="dashboard-header">
+        <div class="dashboard-logo">
+            <div class="logo-icon">CA</div>
+            <span>CloudAttend</span>
+        </div>
+
+        <div class="dashboard-user">
+            <span>Student</span>
+            <button id="student-logout">Logout</button>
+        </div>
+    </header>
+
+
+    <main class="dashboard-main">
+
+        <section class="dashboard-welcome">
+            <h1>Welcome back, <span id="student-name">Student</span></h1>
+            <p>View your classes and attendance.</p>
+        </section>
+
+
+        <section class="stats-grid">
+
+            <div class="stat-card">
+                <p>Attendance</p>
+                <h2 id="attendance-percentage">--</h2>
+            </div>
+
+            <div class="stat-card">
+                <p>Classes</p>
+                <h2 id="class-count">--</h2>
+            </div>
+
+            <div class="stat-card">
+                <p>Present</p>
+                <h2 id="present-count">--</h2>
+            </div>
+
+            <div class="stat-card">
+                <p>Absent</p>
+                <h2 id="absent-count">--</h2>
+            </div>
+
+        </section>
+
+
+        <section class="dashboard-section">
+
+            <div class="section-header">
+                <div>
+                    <p class="section-label">TODAY</p>
+                    <h2>Today's Classes</h2>
+                </div>
+            </div>
+
+            <div id="student-class-list" class="class-list">
+                <p>Loading classes...</p>
+            </div>
+
+        </section>
+
+
+        <!-- ========================================
+             M7.5.2 - STUDENT TIMETABLE
+        ======================================== -->
+
+        <section class="dashboard-section">
+
+            <div class="section-header">
+
+                <div>
+
+                    <p class="section-label">
+                        TIMETABLE
+                    </p>
+
+                    <h2>
+                        My Timetable
+                    </h2>
+
+                    <p>
+                        Your weekly class schedule.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="student-timetable"
+                class="teacher-timetable student-timetable"
+            >
+
+                <p>
+                    Loading timetable...
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <section class="dashboard-section">
+
+            <div class="section-header">
+                <div>
+                    <p class="section-label">ATTENDANCE</p>
+                    <h2>Recent Attendance</h2>
+                </div>
+            </div>
+
+            <div id="recent-attendance">
+                <p>No attendance records yet.</p>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="../assets/js/script.js"></script>
+
+</body>
+</html>

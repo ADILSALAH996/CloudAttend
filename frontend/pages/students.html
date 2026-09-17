@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Students | CloudAttend</title>
+
+    <link
+        rel="stylesheet"
+        href="../assets/css/style.css"
+    >
+</head>
+
+<body>
+
+    <!-- ============================= -->
+    <!-- NAVBAR -->
+    <!-- ============================= -->
+
+    <header class="dashboard-header">
+
+        <div class="logo">
+            <div class="logo-icon">CA</div>
+            <span>CloudAttend</span>
+        </div>
+
+        <div class="teacher-header-right">
+            <span>Teacher</span>
+            <button
+                class="logout-btn"
+                id="teacher-logout"
+            >
+                Logout
+            </button>
+        </div>
+
+    </header>
+
+
+    <!-- ============================= -->
+    <!-- MAIN -->
+    <!-- ============================= -->
+
+    <main class="dashboard-container">
+
+        <section class="dashboard-section">
+
+            <p class="section-label">
+                STUDENTS
+            </p>
+
+            <h1>
+                Class Students
+            </h1>
+
+            <p>
+                View students and their attendance information.
+            </p>
+
+        </section>
+
+
+        <!-- ============================= -->
+        <!-- STUDENT SUMMARY -->
+        <!-- ============================= -->
+
+        <section class="stats-grid">
+
+            <div class="stat-card">
+
+                <span>
+                    Total Students
+                </span>
+
+                <strong id="total-students">
+                    --
+                </strong>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <span>
+                    Present Records
+                </span>
+
+                <strong id="total-present">
+                    --
+                </strong>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <span>
+                    Absent Records
+                </span>
+
+                <strong id="total-absent">
+                    --
+                </strong>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <span>
+                    Class Attendance
+                </span>
+
+                <strong id="class-attendance">
+                    --
+                </strong>
+
+            </div>
+
+        </section>
+
+
+        <!-- ============================= -->
+        <!-- STUDENT LIST -->
+        <!-- ============================= -->
+
+        <section class="dashboard-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <p class="section-label">
+                        ROSTER
+                    </p>
+
+                    <h2>
+                        Students
+                    </h2>
+
+                </div>
+
+                <button
+                    class="btn btn-secondary"
+                    onclick="window.location.href='teacher-dashboard.html'"
+                >
+                    Back to Dashboard
+                </button>
+
+            </div>
+
+
+            <div
+                id="students-loading"
+                class="empty-state"
+            >
+                Loading students...
+            </div>
+
+
+            <div
+                id="students-error"
+                class="empty-state"
+                style="display: none;"
+            >
+            </div>
+
+
+            <div
+                id="students-list"
+                class="students-list"
+            >
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script>
+
+        const API_BASE =
+            "http://127.0.0.1:8000";
+
+
+        // ========================================
+        // LOAD STUDENTS
+        // ========================================
+
+        async function loadStudents() {
+
+            const studentsList =
+                document.getElementById(
+                    "students-list"
+                );
+
+            const loading =
+                document.getElementById(
+                    "students-loading"
+                );
+
+            const errorBox =
+                document.getElementById(
+                    "students-error"
+                );
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        `${API_BASE}/classes/1/students`
+                    );
+
+
+                const students =
+                    await response.json();
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        students.detail ||
+                        "Failed to load students"
+                    );
+
+                }
+
+
+                loading.style.display =
+                    "none";
+
+
+                if (students.length === 0) {
+
+                    studentsList.innerHTML = `
+                        <div class="empty-state">
+                            No students found in this class.
+                        </div>
+                    `;
+
+                    return;
+                }
+
+
+                // ========================================
+                // LOAD ATTENDANCE FOR EACH STUDENT
+                // ========================================
+
+                const studentsWithAttendance =
+                    await Promise.all(
+
+                        students.map(
+                            async function(student) {
+
+                                try {
+
+                                    const attendanceResponse =
+                                        await fetch(
+                                            `${API_BASE}/attendance/student/${student.student_id}/summary`
+                                        );
+
+
+                                    const attendance =
+                                        await attendanceResponse.json();
+
+
+                                    return {
+                                        ...student,
+                                        attendance:
+                                            attendance
+                                    };
+
+                                } catch (error) {
+
+                                    return {
+                                        ...student,
+                                        attendance: {
+                                            present: 0,
+                                            absent: 0,
+                                            percentage: 0
+                                        }
+                                    };
+
+                                }
+
+                            }
+                        )
+
+                    );
+
+
+                renderStudents(
+                    studentsWithAttendance
+                );
+
+
+                updateClassSummary(
+                    studentsWithAttendance
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Student loading error:",
+                    error
+                );
+
+
+                loading.style.display =
+                    "none";
+
+
+                errorBox.style.display =
+                    "block";
+
+
+                errorBox.textContent =
+                    error.message ||
+                    "Unable to load students.";
+
+            }
+
+        }
+
+
+        // ========================================
+        // RENDER STUDENTS
+        // ========================================
+
+        function renderStudents(
+            students
+        ) {
+
+            const studentsList =
+                document.getElementById(
+                    "students-list"
+                );
+
+
+            studentsList.innerHTML =
+                students.map(
+                    function(student) {
+
+                        const attendance =
+                            student.attendance;
+
+
+                        const percentage =
+                            Number(
+                                attendance.percentage || 0
+                            );
+
+
+                        let attendanceClass =
+                            "attendance-good";
+
+
+                        if (percentage < 75) {
+
+                            attendanceClass =
+                                "attendance-danger";
+
+                        } else if (
+                            percentage < 85
+                        ) {
+
+                            attendanceClass =
+                                "attendance-warning";
+
+                        }
+
+
+                        return `
+
+                            <div class="student-row">
+
+                                <div class="student-info">
+
+                                    <div class="student-avatar">
+                                        ${student.name
+                                            .charAt(0)
+                                            .toUpperCase()}
+                                    </div>
+
+                                    <div>
+
+                                        <h3>
+                                            ${student.name}
+                                        </h3>
+
+                                        <p>
+                                            ${student.student_id}
+                                            ·
+                                            ${student.email}
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="student-attendance">
+
+                                    <strong
+                                        class="${attendanceClass}"
+                                    >
+                                        ${percentage}%
+                                    </strong>
+
+                                    <span>
+                                        ${attendance.present}
+                                        present
+                                        ·
+                                        ${attendance.absent}
+                                        absent
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        `;
+
+                    }
+                ).join("");
+
+        }
+
+
+        // ========================================
+        // CLASS SUMMARY
+        // ========================================
+
+        function updateClassSummary(
+            students
+        ) {
+
+            const totalStudents =
+                students.length;
+
+
+            const totalPresent =
+                students.reduce(
+                    function(total, student) {
+
+                        return total +
+                            Number(
+                                student.attendance.present || 0
+                            );
+
+                    },
+                    0
+                );
+
+
+            const totalAbsent =
+                students.reduce(
+                    function(total, student) {
+
+                        return total +
+                            Number(
+                                student.attendance.absent || 0
+                            );
+
+                    },
+                    0
+                );
+
+
+            const totalSessions =
+                totalPresent +
+                totalAbsent;
+
+
+            const percentage =
+                totalSessions > 0
+                    ? (
+                        totalPresent /
+                        totalSessions
+                    ) * 100
+                    : 0;
+
+
+            document.getElementById(
+                "total-students"
+            ).textContent =
+                totalStudents;
+
+
+            document.getElementById(
+                "total-present"
+            ).textContent =
+                totalPresent;
+
+
+            document.getElementById(
+                "total-absent"
+            ).textContent =
+                totalAbsent;
+
+
+            document.getElementById(
+                "class-attendance"
+            ).textContent =
+                `${percentage.toFixed(1)}%`;
+
+        }
+
+
+        // ========================================
+        // LOGOUT
+        // ========================================
+
+        document
+            .getElementById("teacher-logout")
+            .addEventListener(
+                "click",
+                function() {
+
+                    sessionStorage.removeItem(
+                        "teacher"
+                    );
+
+
+                    window.location.href =
+                        "teacher-login.html";
+
+                }
+            );
+
+
+        // ========================================
+        // START
+        // ========================================
+
+        loadStudents();
+
+    </script>
+
+</body>
+
+</html>

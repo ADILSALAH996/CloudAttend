@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Scan Attendance | CloudAttend</title>
+
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+
+<body class="student-dashboard-page">
+
+    <header class="dashboard-header">
+
+        <div class="dashboard-logo">
+            <div class="logo-icon">CA</div>
+            <span>CloudAttend</span>
+        </div>
+
+        <div class="dashboard-user">
+            <span>Student</span>
+
+            <button id="student-logout">
+                Logout
+            </button>
+        </div>
+
+    </header>
+
+
+    <main class="dashboard-main">
+
+        <section class="dashboard-welcome">
+
+            <h1>Mark Attendance</h1>
+
+            <p>
+                Scan the QR code displayed by your teacher.
+            </p>
+
+        </section>
+
+
+        <section class="dashboard-section scanner-section">
+
+            <div class="section-header">
+
+                <div>
+                    <p class="section-label">SCAN</p>
+
+                    <h2>Attendance QR Code</h2>
+                </div>
+
+            </div>
+
+
+            <div id="qr-reader"></div>
+
+
+            <div id="scan-status" class="scan-status">
+                Point your camera at the attendance QR code.
+            </div>
+
+
+            <button
+                type="button"
+                id="back-dashboard"
+                class="btn btn-secondary"
+            >
+                Back to Dashboard
+            </button>
+
+        </section>
+
+    </main>
+
+
+    <!-- QR Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <script src="../assets/js/script.js"></script>
+
+</body>
+
+</html>
