@@ -298,7 +298,10 @@ const classList =
 
 if (classList) {
     console.log("CLASS LIST FOUND");
+
     loadTeacherTodayClasses();
+
+    loadTeacherTotalStudents();
 }
 
 
@@ -578,6 +581,114 @@ async function loadTeacherClasses() {
     }
 }
 
+
+
+// ========================================
+// M8.1 - DYNAMIC TOTAL STUDENTS
+// ========================================
+
+async function loadTeacherTotalStudents() {
+
+    const totalStudentsCount =
+        document.getElementById("total-students-count");
+
+    if (!totalStudentsCount) {
+        return;
+    }
+
+    const teacherData =
+        sessionStorage.getItem("teacher");
+
+    if (!teacherData) {
+        totalStudentsCount.textContent = "--";
+        return;
+    }
+
+    try {
+
+        const teacher =
+            JSON.parse(teacherData);
+
+        if (!teacher.faculty_id) {
+            totalStudentsCount.textContent = "--";
+            return;
+        }
+
+        // Get teacher's timetable
+        const response =
+            await fetch(
+                `http://127.0.0.1:8000/schedules/faculty/${teacher.faculty_id}`
+            );
+
+        const timetable =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                timetable.detail ||
+                "Failed to load timetable"
+            );
+        }
+
+        // Get unique class IDs
+        const classIds =
+            [
+                ...new Set(
+                    timetable
+                        .map(entry => entry.class_id)
+                        .filter(Boolean)
+                )
+            ];
+
+        const students = [];
+
+        // Get students from each class
+        for (const classId of classIds) {
+
+            const studentResponse =
+                await fetch(
+                    `http://127.0.0.1:8000/classes/${classId}/students`
+                );
+
+            if (!studentResponse.ok) {
+                continue;
+            }
+
+            const classStudents =
+                await studentResponse.json();
+
+            students.push(
+                ...classStudents
+            );
+        }
+
+        // Remove duplicate students
+        const uniqueStudents =
+            new Map();
+
+        students.forEach(
+            function (student) {
+                uniqueStudents.set(
+                    student.id,
+                    student
+                );
+            }
+        );
+
+        totalStudentsCount.textContent =
+            uniqueStudents.size;
+
+    } catch (error) {
+
+        console.error(
+            "Total students loading error:",
+            error
+        );
+
+        totalStudentsCount.textContent =
+            "--";
+    }
+}
 
 
 // ========================================
