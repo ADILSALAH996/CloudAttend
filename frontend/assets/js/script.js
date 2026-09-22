@@ -9,6 +9,24 @@ console.log("CLOUDATTEND SCRIPT LOADED");
 
 function showToast(message, type = "info") {
 
+
+        // Convert API/object errors into readable text
+    if (typeof message !== "string") {
+
+        if (message?.detail) {
+            message = message.detail;
+        } else if (message?.message) {
+            message = message.message;
+        } else {
+            try {
+                message = JSON.stringify(message);
+            } catch {
+                message = "Something went wrong.";
+            }
+        }
+    }
+
+
     let toastContainer =
         document.getElementById("cloudattend-toast-container");
 
@@ -302,8 +320,13 @@ if (classList) {
     loadTeacherTodayClasses();
 
     loadTeacherTotalStudents();
-}
 
+    loadTeacherTodaySessions();
+
+    loadTeacherAttendanceOverview();
+
+    loadTeacherRecentSessions();
+}
 
 // ========================================
 // LOAD TEACHER CLASSES
@@ -691,6 +714,1099 @@ async function loadTeacherTotalStudents() {
 }
 
 
+
+// ========================================
+// M8.2 - DYNAMIC TODAY'S SESSIONS
+// ========================================
+
+async function loadTeacherTodaySessions() {
+
+    const todaySessionsCount =
+        document.getElementById(
+            "today-sessions-count"
+        );
+
+    if (!todaySessionsCount) {
+        return;
+    }
+
+    const teacherData =
+        sessionStorage.getItem("teacher");
+
+    if (!teacherData) {
+        todaySessionsCount.textContent = "--";
+        return;
+    }
+
+    try {
+
+        const teacher =
+            JSON.parse(teacherData);
+
+        if (!teacher.teacher_id) {
+            todaySessionsCount.textContent = "--";
+            return;
+        }
+
+        // ========================================
+        // GET TEACHER ATTENDANCE SESSIONS
+        // ========================================
+
+        const response =
+            await fetch(
+                `http://127.0.0.1:8000/attendance/teacher/${teacher.teacher_id}`
+            );
+
+        const sessions =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                sessions.detail ||
+                "Failed to load attendance sessions"
+            );
+        }
+
+        // ========================================
+        // GET TODAY'S DATE
+        // ========================================
+
+        const today =
+            new Date().toLocaleDateString(
+                "en-IN"
+            );
+
+        // ========================================
+        // FILTER TODAY'S SESSIONS
+        // ========================================
+
+        const todaySessions =
+            sessions.filter(
+                function (session) {
+
+                    const sessionDate =
+                        parseUtcDate(
+                            session.start_time
+                        );
+
+                    if (!sessionDate) {
+                        return false;
+                    }
+
+                    return (
+                        sessionDate.toLocaleDateString(
+                            "en-IN"
+                        ) === today
+                    );
+
+                }
+            );
+
+        // ========================================
+        // DISPLAY COUNT
+        // ========================================
+
+        todaySessionsCount.textContent =
+            todaySessions.length;
+
+    } catch (error) {
+
+        console.error(
+            "Today's sessions loading error:",
+            error
+        );
+
+        todaySessionsCount.textContent =
+            "--";
+    }
+}
+
+
+
+// ========================================
+// M8.3 - RECENT ATTENDANCE SESSIONS
+// ========================================
+
+async function loadTeacherRecentSessions() {
+
+    const recentSessionList =
+        document.getElementById(
+            "recent-session-list"
+        );
+
+    if (!recentSessionList) {
+        return;
+    }
+
+    const teacherData =
+        sessionStorage.getItem("teacher");
+
+    if (!teacherData) {
+
+        recentSessionList.innerHTML =
+            "<p>Please log in again.</p>";
+
+        return;
+    }
+
+    try {
+
+        const teacher =
+            JSON.parse(teacherData);
+
+        const response =
+            await fetch(
+                `http://127.0.0.1:8000/attendance/teacher/${teacher.teacher_id}`
+            );
+
+        const sessions =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                sessions.detail ||
+                "Failed to load recent sessions"
+            );
+        }
+
+        if (sessions.length === 0) {
+
+            recentSessionList.innerHTML =
+                "<p>No attendance sessions yet.</p>";
+
+            return;
+        }
+
+        recentSessionList.innerHTML =
+            sessions.map(
+                function (session) {
+
+                    const sessionDate =
+                        parseUtcDate(
+                            session.start_time
+                        );
+
+                    let dateText = "--";
+
+                    if (sessionDate) {
+
+                        const today =
+                            new Date();
+
+                        const yesterday =
+                            new Date();
+
+                        yesterday.setDate(
+                            yesterday.getDate() - 1
+                        );
+
+                        if (
+                            sessionDate.toLocaleDateString(
+                                "en-IN"
+                            ) ===
+                            today.toLocaleDateString(
+                                "en-IN"
+                            )
+                        ) {
+
+                            dateText = "Today";
+
+                        } else if (
+                            sessionDate.toLocaleDateString(
+                                "en-IN"
+                            ) ===
+                            yesterday.toLocaleDateString(
+                                "en-IN"
+                            )
+                        ) {
+
+                            dateText = "Yesterday";
+
+                        } else {
+
+                            dateText =
+                                sessionDate.toLocaleDateString(
+                                    "en-IN",
+                                    {
+                                        day: "2-digit",
+                                        month: "short"
+                                    }
+                                );
+                        }
+                    }
+
+                    return `
+                        <div
+                            class="session-row"
+                            data-session-id="${session.session_id}"
+                            style="cursor: pointer;"
+                        >
+
+                            <span>
+                                ${session.subject}
+                                ·
+                                ${session.class_name}
+                            </span>
+
+                            <span>
+                                ${session.present_count}
+                                /
+                                ${session.total_students}
+                            </span>
+
+                            <span>
+                                ${dateText}
+                            </span>
+
+                        </div>
+                    `;
+                }
+            ).join("");
+
+
+        // ========================================
+        // M8.4 - SESSION DETAILS CLICK
+        // ========================================
+
+        const sessionRows =
+            recentSessionList.querySelectorAll(
+                ".session-row"
+            );
+
+        sessionRows.forEach(
+            function (row) {
+
+                row.addEventListener(
+                    "click",
+                    function () {
+
+                        const sessionId =
+                            row.dataset.sessionId;
+
+                        loadAttendanceSessionDetails(
+                            sessionId
+                        );
+                    }
+                );
+            }
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Recent sessions error:",
+            error
+        );
+
+        recentSessionList.innerHTML =
+            "<p>Unable to load recent sessions.</p>";
+    }
+}
+
+
+
+// ========================================
+// M8.4 - ATTENDANCE SESSION DETAILS
+// ========================================
+
+async function loadAttendanceSessionDetails(
+    sessionId
+) {
+
+    if (!sessionId) {
+        return;
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                `http://127.0.0.1:8000/attendance/session/${sessionId}`
+            );
+
+        const session =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                session.detail ||
+                "Failed to load attendance details"
+            );
+        }
+
+
+        // ========================================
+        // CREATE MODAL
+        // ========================================
+
+        let modal =
+            document.getElementById(
+                "attendance-session-details-modal"
+            );
+
+
+        if (!modal) {
+
+            modal =
+                document.createElement("div");
+
+            modal.id =
+                "attendance-session-details-modal";
+
+            modal.style.position =
+                "fixed";
+
+            modal.style.inset =
+                "0";
+
+            modal.style.background =
+                "rgba(15, 23, 42, 0.45)";
+
+            modal.style.display =
+                "flex";
+
+            modal.style.alignItems =
+                "center";
+
+            modal.style.justifyContent =
+                "center";
+
+            modal.style.padding =
+                "24px";
+
+            modal.style.zIndex =
+                "99998";
+
+            modal.innerHTML = `
+                <div
+                    style="
+                        width: min(720px, 100%);
+                        max-height: 85vh;
+                        overflow-y: auto;
+                        background: #ffffff;
+                        border-radius: 16px;
+                        padding: 28px;
+                        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.20);
+                    "
+                >
+
+                    <div
+                        style="
+                            display: flex;
+                            align-items: flex-start;
+                            justify-content: space-between;
+                            gap: 20px;
+                            margin-bottom: 24px;
+                        "
+                    >
+
+                        <div>
+
+                            <h2
+                                id="session-details-title"
+                                style="
+                                    margin: 0 0 6px;
+                                    color: #0f172a;
+                                    font-size: 22px;
+                                "
+                            ></h2>
+
+                            <p
+                                id="session-details-subtitle"
+                                style="
+                                    margin: 0;
+                                    color: #64748b;
+                                    font-size: 14px;
+                                "
+                            ></p>
+
+                        </div>
+
+                        <button
+                            type="button"
+                            id="close-session-details"
+                            style="
+                                border: none;
+                                background: #f1f5f9;
+                                color: #475569;
+                                width: 36px;
+                                height: 36px;
+                                border-radius: 10px;
+                                cursor: pointer;
+                                font-size: 18px;
+                            "
+                        >
+                            ×
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        id="session-details-summary"
+                        style="
+                            display: grid;
+                            grid-template-columns:
+                                repeat(3, 1fr);
+                            gap: 12px;
+                            margin-bottom: 24px;
+                        "
+                    ></div>
+
+
+                    <div>
+
+                        <h3
+                            style="
+                                margin: 0 0 14px;
+                                color: #0f172a;
+                                font-size: 16px;
+                            "
+                        >
+                            Student Attendance
+                        </h3>
+
+                        <div
+                            id="session-student-list"
+                        ></div>
+
+                    </div>
+
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+
+            // ========================================
+            // CLOSE MODAL
+            // ========================================
+
+            document
+                .getElementById(
+                    "close-session-details"
+                )
+                .addEventListener(
+                    "click",
+                    function () {
+
+                        modal.remove();
+                    }
+                );
+
+
+            modal.addEventListener(
+                "click",
+                function (event) {
+
+                    if (event.target === modal) {
+
+                        modal.remove();
+                    }
+                }
+            );
+        }
+
+
+        // ========================================
+        // SESSION INFORMATION
+        // ========================================
+
+        const sessionTitle =
+            document.getElementById(
+                "session-details-title"
+            );
+
+        const sessionSubtitle =
+            document.getElementById(
+                "session-details-subtitle"
+            );
+
+
+        if (sessionTitle) {
+
+            sessionTitle.textContent =
+                session.subject;
+        }
+
+
+        if (sessionSubtitle) {
+
+            sessionSubtitle.textContent =
+                `${session.class_name} · Session #${sessionId}`;
+        }
+
+
+        // ========================================
+        // FORMAT SESSION TIME
+        // ========================================
+
+        const startDate =
+            parseUtcDate(
+                session.start_time
+            );
+
+        const endDate =
+            parseUtcDate(
+                session.end_time
+            );
+
+
+        let sessionTime =
+            "--";
+
+
+        if (startDate && endDate) {
+
+            const startTime =
+                startDate.toLocaleTimeString(
+                    "en-IN",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                );
+
+            const endTime =
+                endDate.toLocaleTimeString(
+                    "en-IN",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                );
+
+            sessionTime =
+                `${startTime} – ${endTime}`;
+        }
+
+
+        // ========================================
+        // SUMMARY CARDS
+        // ========================================
+
+        const summary =
+            document.getElementById(
+                "session-details-summary"
+            );
+
+
+        if (summary) {
+
+            summary.innerHTML = `
+
+                <div
+                    style="
+                        background: #f8fafc;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 12px;
+                        padding: 16px;
+                    "
+                >
+
+                    <div
+                        style="
+                            color: #64748b;
+                            font-size: 12px;
+                            margin-bottom: 6px;
+                        "
+                    >
+                        Present
+                    </div>
+
+                    <strong
+                        style="
+                            color: #16a34a;
+                            font-size: 22px;
+                        "
+                    >
+                        ${session.present}
+                    </strong>
+
+                </div>
+
+
+                <div
+                    style="
+                        background: #f8fafc;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 12px;
+                        padding: 16px;
+                    "
+                >
+
+                    <div
+                        style="
+                            color: #64748b;
+                            font-size: 12px;
+                            margin-bottom: 6px;
+                        "
+                    >
+                        Total Students
+                    </div>
+
+                    <strong
+                        style="
+                            color: #0f172a;
+                            font-size: 22px;
+                        "
+                    >
+                        ${session.total_students}
+                    </strong>
+
+                </div>
+
+
+                <div
+                    style="
+                        background: #f8fafc;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 12px;
+                        padding: 16px;
+                    "
+                >
+
+                    <div
+                        style="
+                            color: #64748b;
+                            font-size: 12px;
+                            margin-bottom: 6px;
+                        "
+                    >
+                        Time
+                    </div>
+
+                    <strong
+                        style="
+                            color: #0f172a;
+                            font-size: 16px;
+                        "
+                    >
+                        ${sessionTime}
+                    </strong>
+
+                </div>
+            `;
+        }
+
+
+        // ========================================
+        // STUDENT LIST
+        // ========================================
+
+        const studentList =
+            document.getElementById(
+                "session-student-list"
+            );
+
+
+        if (!studentList) {
+            return;
+        }
+
+
+        if (
+            !session.students ||
+            session.students.length === 0
+        ) {
+
+            studentList.innerHTML = `
+                <p
+                    style="
+                        color: #64748b;
+                        font-size: 14px;
+                    "
+                >
+                    No students found.
+                </p>
+            `;
+
+            return;
+        }
+
+
+        studentList.innerHTML =
+            session.students.map(
+                function (student) {
+
+                    const markedDate =
+                        parseUtcDate(
+                            student.marked_at
+                        );
+
+
+                    let markedTime =
+                        "--";
+
+
+                    if (markedDate) {
+
+                        markedTime =
+                            markedDate.toLocaleTimeString(
+                                "en-IN",
+                                {
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                }
+                            );
+                    }
+
+
+                    const isPresent =
+                        student.status === "present";
+
+
+                    return `
+                        <div
+                            style="
+                                display: flex;
+                                align-items: center;
+                                justify-content: space-between;
+                                gap: 16px;
+                                padding: 14px 0;
+                                border-bottom: 1px solid #e2e8f0;
+                            "
+                        >
+
+                            <div>
+
+                                <strong
+                                    style="
+                                        display: block;
+                                        color: #0f172a;
+                                        font-size: 14px;
+                                    "
+                                >
+                                    ${student.name}
+                                </strong>
+
+                                <span
+                                    style="
+                                        color: #64748b;
+                                        font-size: 13px;
+                                    "
+                                >
+                                    ${student.student_id}
+                                </span>
+
+                            </div>
+
+
+                            <div
+                                style="
+                                    text-align: right;
+                                "
+                            >
+
+                                <span
+                                    style="
+                                        display: inline-block;
+                                        padding: 4px 9px;
+                                        border-radius: 999px;
+                                        background: ${
+                                            isPresent
+                                                ? "#dcfce7"
+                                                : "#f1f5f9"
+                                        };
+                                        color: ${
+                                            isPresent
+                                                ? "#166534"
+                                                : "#64748b"
+                                        };
+                                        font-size: 12px;
+                                        font-weight: 600;
+                                    "
+                                >
+                                    ${
+                                        isPresent
+                                            ? "Present"
+                                            : student.status
+                                    }
+                                </span>
+
+                                ${
+                                    isPresent
+                                        ? `
+                                            <small
+                                                style="
+                                                    display: block;
+                                                    margin-top: 4px;
+                                                    color: #94a3b8;
+                                                    font-size: 11px;
+                                                "
+                                            >
+                                                ${markedTime}
+                                            </small>
+                                        `
+                                        : ""
+                                }
+
+                            </div>
+
+                        </div>
+                    `;
+                }
+            ).join("");
+        
+
+    } catch (error) {
+
+        console.error(
+            "Session details error:",
+            error
+        );
+
+        const errorMessage =
+            error instanceof Error
+                ? error.message
+                : (
+                    error?.detail ||
+                    error?.message ||
+                    "Unable to load attendance details."
+                );
+
+        showToast(
+            errorMessage,
+            "error"
+        );
+    }
+}
+
+
+
+// ========================================
+// M8.1 - TEACHER ATTENDANCE OVERVIEW
+// ========================================
+
+async function loadTeacherAttendanceOverview() {
+
+    const overviewContainer =
+        document.getElementById(
+            "teacher-attendance-overview"
+        );
+
+    const averageAttendance =
+        document.getElementById(
+            "average-attendance-count"
+        );
+
+    if (!overviewContainer) {
+        return;
+    }
+
+    const teacherData =
+        sessionStorage.getItem("teacher");
+
+    if (!teacherData) {
+        overviewContainer.innerHTML =
+            "<p>Please log in again.</p>";
+
+        return;
+    }
+
+    try {
+
+        const teacher =
+            JSON.parse(teacherData);
+
+        if (!teacher.faculty_id) {
+            overviewContainer.innerHTML =
+                "<p>No faculty information is available.</p>";
+
+            return;
+        }
+
+        // ========================================
+        // GET TEACHER TIMETABLE
+        // ========================================
+
+        const timetableResponse =
+            await fetch(
+                `http://127.0.0.1:8000/schedules/faculty/${teacher.faculty_id}`
+            );
+
+        const timetable =
+            await timetableResponse.json();
+
+        if (!timetableResponse.ok) {
+            throw new Error(
+                timetable.detail ||
+                "Failed to load timetable"
+            );
+        }
+
+        // ========================================
+        // GET UNIQUE CLASS IDs
+        // ========================================
+
+        const classIds = [
+            ...new Set(
+                timetable
+                    .map(entry => entry.class_id)
+                    .filter(Boolean)
+            )
+        ];
+
+        if (classIds.length === 0) {
+
+            overviewContainer.innerHTML =
+                "<p>No classes found.</p>";
+
+            if (averageAttendance) {
+                averageAttendance.textContent = "--";
+            }
+
+            return;
+        }
+
+        // ========================================
+        // GET ATTENDANCE FOR EACH CLASS
+        // ========================================
+
+        const attendanceData = [];
+
+        for (const classId of classIds) {
+
+            const response =
+                await fetch(
+                    `http://127.0.0.1:8000/attendance/class/${classId}`
+                );
+
+            if (!response.ok) {
+                continue;
+            }
+
+            const data =
+                await response.json();
+
+            attendanceData.push(data);
+        }
+
+        if (attendanceData.length === 0) {
+
+            overviewContainer.innerHTML =
+                "<p>No attendance data available.</p>";
+
+            if (averageAttendance) {
+                averageAttendance.textContent = "--";
+            }
+
+            return;
+        }
+
+        // ========================================
+        // CALCULATE AVERAGE ATTENDANCE
+        // ========================================
+
+        const classPercentages =
+            attendanceData.map(
+                function (classData) {
+
+                    if (
+                        !classData.students ||
+                        classData.students.length === 0
+                    ) {
+                        return 0;
+                    }
+
+                    const total =
+                        classData.students.reduce(
+                            function (sum, student) {
+
+                                return sum +
+                                    Number(
+                                        student.attendance_percentage || 0
+                                    );
+
+                            },
+                            0
+                        );
+
+                    return total /
+                        classData.students.length;
+                }
+            );
+
+
+        const totalPercentage =
+            classPercentages.reduce(
+                function (total, percentage) {
+
+                    return total + percentage;
+
+                },
+                0
+            );
+
+
+        const average =
+            totalPercentage /
+            classPercentages.length;
+
+        if (averageAttendance) {
+
+            averageAttendance.textContent =
+                `${average.toFixed(1)}%`;
+        }
+
+        // ========================================
+        // RENDER ATTENDANCE OVERVIEW
+        // ========================================
+
+        overviewContainer.innerHTML =
+            attendanceData.map(
+                function (classData) {
+
+                    return `
+                        <div class="attendance-item">
+                            <span>
+                                ${classData.class_name}
+                            </span>
+
+                            <strong>
+                                ${(
+                                classData.students &&
+                                classData.students.length > 0
+                                    ? classData.students.reduce(
+                                        function (sum, student) {
+                                            return sum +
+                                                Number(
+                                                    student.attendance_percentage || 0
+                                                );
+                                        },
+                                        0
+                                    ) / classData.students.length
+                                    : 0
+                            ).toFixed(1)}%
+                            </strong>
+                        </div>
+                    `;
+
+                }
+            ).join("");
+
+    } catch (error) {
+
+        console.error(
+            "Teacher attendance overview error:",
+            error
+        );
+
+        overviewContainer.innerHTML =
+            "<p>Unable to load attendance data.</p>";
+
+        if (averageAttendance) {
+            averageAttendance.textContent = "--";
+        }
+    }
+}
+
+
+
 // ========================================
 // M7.6.2 - TEACHER TODAY'S CLASSES
 // ========================================
@@ -769,6 +1885,22 @@ async function loadTeacherTodayClasses() {
                     return entry.day_of_week === today;
                 }
             );
+
+
+
+        // ========================================
+        // M8.2 - UPDATE CLASSES TODAY
+        // ========================================
+
+        const classesTodayCount =
+            document.getElementById(
+                "classes-today-count"
+            );
+
+        if (classesTodayCount) {
+            classesTodayCount.textContent =
+                todayClasses.length;
+        }
 
 
         // ========================================
@@ -2835,36 +3967,86 @@ async function loadStudentTodayClasses(
         }
 
 
-        // ========================================
-        // CHECK ACTIVE ATTENDANCE SESSION
-        // ========================================
+// ========================================
+// M7.8 - CHECK ATTENDANCE STATUS
+// ========================================
 
-        let activeSession = null;
+let activeSession = null;
+let attendanceAlreadyMarked = false;
+
+try {
+
+    // ----------------------------------------
+    // CHECK ACTIVE SESSION
+    // ----------------------------------------
+
+    const sessionResponse =
+        await fetch(
+            `http://127.0.0.1:8000/attendance/sessions/active/${classId}`
+        );
+
+    if (sessionResponse.ok) {
+
+        activeSession =
+            await sessionResponse.json();
+
+    }
 
 
-        try {
+    // ----------------------------------------
+    // CHECK STUDENT ATTENDANCE RECORDS
+    // ----------------------------------------
 
-            const sessionResponse =
+    if (activeSession) {
+
+        const studentData =
+            sessionStorage.getItem("student");
+
+
+        if (studentData) {
+
+            const student =
+                JSON.parse(studentData);
+
+
+            const attendanceResponse =
                 await fetch(
-                    `http://127.0.0.1:8000/attendance/sessions/active/${classId}`
+                    `http://127.0.0.1:8000/attendance/student/${student.student_id}`
                 );
 
 
-            if (sessionResponse.ok) {
+            if (attendanceResponse.ok) {
 
-                activeSession =
-                    await sessionResponse.json();
+                const attendanceRecords =
+                    await attendanceResponse.json();
+
+
+                attendanceAlreadyMarked =
+                    attendanceRecords.some(
+                        function (record) {
+
+                            return (
+                                record.session_id ===
+                                activeSession.id
+                            );
+
+                        }
+                    );
 
             }
 
-        } catch (error) {
-
-            console.error(
-                "Active session check error:",
-                error
-            );
-
         }
+
+    }
+
+} catch (error) {
+
+    console.error(
+        "Attendance status check error:",
+        error
+    );
+
+}
 
 
         // ========================================
@@ -2887,77 +4069,118 @@ async function loadStudentTodayClasses(
                     "student-class-card";
 
 
-                // ========================================
-                // ACTIVE SESSION
-                // ========================================
+if (activeSession) {
 
-                if (activeSession) {
+    if (attendanceAlreadyMarked) {
 
-                    classCard.innerHTML = `
+        classCard.innerHTML = `
+            <div>
+                <h3>
+                    ${entry.subject}
+                </h3>
 
-                        <div>
+                <p>
+                    ${entry.batch}
+                </p>
 
-                            <h3>
-                                ${entry.subject}
-                            </h3>
+                <span>
+                    ${formatTime(entry.start_time)}
+                    –
+                    ${formatTime(entry.end_time)}
+                </span>
 
-                            <p>
-                                ${entry.batch}
-                            </p>
-
+                ${
+                    entry.room
+                        ? `
                             <span>
-                                ${formatTime(entry.start_time)}
-                                –
-                                ${formatTime(entry.end_time)}
+                                · ${entry.room}
                             </span>
-
-                            ${
-                                entry.room
-                                    ? `
-                                        <span>
-                                            · ${entry.room}
-                                        </span>
-                                    `
-                                    : ""
-                            }
-
-                            <div
-                                style="
-                                    margin-top: 8px;
-                                    color: #16a34a;
-                                    font-size: 14px;
-                                    font-weight: 600;
-                                "
-                            >
-                                ● Attendance Available
-                            </div>
-
-                        </div>
-
-
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            onclick="window.location.href='attendance.html'"
-                        >
-                            Scan Attendance
-                        </button>
-
-                    `;
-
+                        `
+                        : ""
                 }
 
+                <div
+                    style="
+                        margin-top: 8px;
+                        color: #16a34a;
+                        font-size: 14px;
+                        font-weight: 600;
+                    "
+                >
+                    ✓ Attendance Marked
+                </div>
+            </div>
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                disabled
+            >
+                Already Marked
+            </button>
+        `;
+
+    } else {
+
+        classCard.innerHTML = `
+            <div>
+                <h3>
+                    ${entry.subject}
+                </h3>
+
+                <p>
+                    ${entry.batch}
+                </p>
+
+                <span>
+                    ${formatTime(entry.start_time)}
+                    –
+                    ${formatTime(entry.end_time)}
+                </span>
+
+                ${
+                    entry.room
+                        ? `
+                            <span>
+                                · ${entry.room}
+                            </span>
+                        `
+                        : ""
+                }
+
+                <div
+                    style="
+                        margin-top: 8px;
+                        color: #16a34a;
+                        font-size: 14px;
+                        font-weight: 600;
+                    "
+                >
+                    ● Attendance Available
+                </div>
+            </div>
+
+            <button
+                type="button"
+                class="btn btn-primary"
+                onclick="window.location.href='attendance.html'"
+            >
+                Scan Attendance
+            </button>
+        `;
+
+    }
+}
+
 
                 // ========================================
-                // NO ACTIVE SESSION
+                // M7.7.1 - NO ACTIVE ATTENDANCE SESSION
                 // ========================================
 
                 else {
 
                     classCard.innerHTML = `
-
                         <div>
-
                             <h3>
                                 ${entry.subject}
                             </h3>
@@ -2992,9 +4215,7 @@ async function loadStudentTodayClasses(
                             >
                                 Attendance not started
                             </div>
-
                         </div>
-
 
                         <button
                             type="button"
@@ -3003,9 +4224,7 @@ async function loadStudentTodayClasses(
                         >
                             Attendance Not Started
                         </button>
-
                     `;
-
                 }
 
 
@@ -3033,6 +4252,8 @@ async function loadStudentTodayClasses(
 
     }
 }
+
+
 
 
 // ========================================

@@ -52,7 +52,7 @@
 
             <div class="stat-card">
                 <span>Classes Today</span>
-                <strong>4</strong>
+                <strong id="classes-today-count">--</strong>
             </div>
 
             <div class="stat-card">
@@ -62,12 +62,12 @@
 
             <div class="stat-card">
                 <span>Today's Sessions</span>
-                <strong>3</strong>
+                <strong id="today-sessions-count">--</strong>
             </div>
 
             <div class="stat-card">
                 <span>Average Attendance</span>
-                <strong>89.4%</strong>
+                <strong id="average-attendance-count">--</strong>
             </div>
 
         </section>
@@ -137,36 +137,25 @@
         </section>
 
 
-        <!-- Bottom Dashboard Grid -->
+                <!-- Bottom Dashboard Grid -->
 
-        <section class="dashboard-grid">
+                <section class="dashboard-grid">
 
 
-            <!-- Attendance Overview -->
+                <div class="dashboard-panel">
 
-            <div class="dashboard-panel">
+            <p class="section-label">OVERVIEW</p>
 
-                <p class="section-label">OVERVIEW</p>
+            <h2>Attendance Overview</h2>
 
-                <h2>Attendance Overview</h2>
-
-                <div class="attendance-item">
-                    <span>CSE-A</span>
-                    <strong>92%</strong>
-                </div>
-
-                <div class="attendance-item">
-                    <span>CSE-B</span>
-                    <strong>87%</strong>
-                </div>
-
-                <div class="attendance-item">
-                    <span>CSE-C</span>
-                    <strong>94%</strong>
-                </div>
-
+            <div
+                class="attendance-overview"
+                id="teacher-attendance-overview"
+            >
+                <p>Loading attendance...</p>
             </div>
 
+        </div>
 
             <!-- Quick Actions -->
 
@@ -205,22 +194,13 @@
 
             <div class="session-list">
 
-                <div class="session-row">
-                    <span>Data Structures · CSE-A</span>
-                    <span>45 / 45</span>
-                    <span>Today</span>
-                </div>
-
-                <div class="session-row">
-                    <span>DBMS · CSE-B</span>
-                    <span>38 / 42</span>
-                    <span>Yesterday</span>
-                </div>
-
-                <div class="session-row">
-                    <span>Operating Systems · CSE-C</span>
-                    <span>37 / 40</span>
-                    <span>Yesterday</span>
+                <div
+                    class="session-list"
+                    id="recent-session-list"
+                >
+                    <p>
+                        Loading recent sessions...
+                    </p>
                 </div>
 
             </div>

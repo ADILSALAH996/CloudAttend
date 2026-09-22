@@ -213,6 +213,92 @@ def get_active_attendance_session(
     return active_session
 
 
+
+
+# ========================================
+# M8.3 - GET TEACHER ATTENDANCE SESSIONS
+# ========================================
+
+@router.get(
+    "/teacher/{teacher_id}"
+)
+def get_teacher_attendance_sessions(
+    teacher_id: int,
+    db: Session = Depends(get_db)
+):
+
+    sessions = (
+        db.query(
+            AttendanceSession,
+            Class
+        )
+        .join(
+            Class,
+            AttendanceSession.class_id == Class.id
+        )
+        .filter(
+            Class.teacher_id == teacher_id
+        )
+        .order_by(
+            AttendanceSession.start_time.desc()
+        )
+        .limit(5)
+        .all()
+    )
+
+
+    session_history = []
+
+
+    for session, class_item in sessions:
+
+        total_students = db.query(
+            Student
+        ).filter(
+            Student.class_id == session.class_id
+        ).count()
+
+
+        present_count = db.query(
+            AttendanceRecord
+        ).filter(
+            AttendanceRecord.session_id == session.id,
+            AttendanceRecord.status == "present"
+        ).count()
+
+
+        session_history.append({
+
+            "session_id":
+                session.id,
+
+            "class_name":
+                class_item.name,
+
+            "subject":
+                class_item.subject,
+
+            "start_time":
+                session.start_time,
+
+            "end_time":
+                session.end_time,
+
+            "status":
+                session.status,
+
+            "present_count":
+                present_count,
+
+            "total_students":
+                total_students
+        })
+
+
+    return session_history
+
+
+
 # ========================================
 # MARK ATTENDANCE
 # ========================================
@@ -478,6 +564,7 @@ def get_student_attendance(
     for record, session, class_item in records:
 
         attendance_history.append({
+            "session_id": record.session_id,
             "class_name": class_item.name,
             "subject": class_item.subject,
             "status": record.status,
@@ -486,3 +573,366 @@ def get_student_attendance(
 
 
     return attendance_history
+
+
+# ========================================
+# M8.3 - GET TEACHER ATTENDANCE RECORDS
+# ========================================
+
+@router.get("/teacher/{teacher_id}")
+def get_teacher_attendance(
+    teacher_id: int,
+    db: Session = Depends(get_db)
+):
+
+    # ========================================
+    # GET TEACHER'S CLASSES
+    # ========================================
+
+    classes = db.query(Class).filter(
+        Class.teacher_id == teacher_id
+    ).all()
+
+    if not classes:
+        return []
+
+
+    class_ids = [
+        class_item.id
+        for class_item in classes
+    ]
+
+
+    # ========================================
+    # GET ATTENDANCE SESSIONS
+    # ========================================
+
+    sessions = db.query(
+        AttendanceSession
+    ).filter(
+        AttendanceSession.class_id.in_(class_ids)
+    ).order_by(
+        AttendanceSession.start_time.desc()
+    ).all()
+
+
+    attendance_reports = []
+
+
+    # ========================================
+    # BUILD REPORT
+    # ========================================
+
+    for session in sessions:
+
+        class_item = db.query(Class).filter(
+            Class.id == session.class_id
+        ).first()
+
+
+        students = db.query(Student).filter(
+            Student.class_id == session.class_id
+        ).order_by(
+            Student.name
+        ).all()
+
+
+        records = db.query(
+            AttendanceRecord
+        ).filter(
+            AttendanceRecord.session_id == session.id
+        ).all()
+
+
+        present_student_ids = {
+            record.student_id
+            for record in records
+            if record.status == "present"
+        }
+
+
+        student_records = []
+
+
+        for student in students:
+
+            status = (
+                "present"
+                if student.id in present_student_ids
+                else "absent"
+            )
+
+
+            student_records.append({
+                "student_id": student.student_id,
+                "name": student.name,
+                "status": status
+            })
+
+
+        attendance_reports.append({
+
+            "session_id": session.id,
+
+            "class_id": session.class_id,
+
+            "class_name": class_item.name,
+
+            "subject": class_item.subject,
+
+            "start_time": session.start_time,
+
+            "end_time": session.end_time,
+
+            "status": session.status,
+
+            "students": student_records
+
+        })
+
+
+    return attendance_reports
+
+
+
+# ========================================
+# M8.4 - GET ATTENDANCE SESSION DETAILS
+# ========================================
+
+@router.get("/session/{session_id}")
+def get_attendance_session_details(
+    session_id: int,
+    db: Session = Depends(get_db)
+):
+
+    # ========================================
+    # FIND SESSION
+    # ========================================
+
+    session = db.query(
+        AttendanceSession
+    ).filter(
+        AttendanceSession.id == session_id
+    ).first()
+
+    if not session:
+        raise HTTPException(
+            status_code=404,
+            detail="Attendance session not found"
+        )
+
+
+    # ========================================
+    # FIND CLASS
+    # ========================================
+
+    class_item = db.query(
+        Class
+    ).filter(
+        Class.id == session.class_id
+    ).first()
+
+    if not class_item:
+        raise HTTPException(
+            status_code=404,
+            detail="Class not found"
+        )
+
+
+    # ========================================
+    # GET STUDENTS
+    # ========================================
+
+    students = db.query(
+        Student
+    ).filter(
+        Student.class_id == session.class_id
+    ).order_by(
+        Student.name
+    ).all()
+
+
+    # ========================================
+    # GET ATTENDANCE RECORDS
+    # ========================================
+
+    records = db.query(
+        AttendanceRecord
+    ).filter(
+        AttendanceRecord.session_id == session.id
+    ).all()
+
+
+    # ========================================
+    # CREATE RECORD LOOKUP
+    # ========================================
+
+    attendance_map = {
+        record.student_id: record
+        for record in records
+    }
+
+
+    # ========================================
+    # BUILD STUDENT LIST
+    # ========================================
+
+    student_list = []
+
+    for student in students:
+
+        record = attendance_map.get(
+            student.id
+        )
+
+        if record:
+
+            status = record.status
+            marked_at = record.marked_at
+
+        else:
+
+            status = "absent"
+            marked_at = None
+
+
+        student_list.append({
+
+            "student_id": student.student_id,
+
+            "name": student.name,
+
+            "status": status,
+
+            "marked_at": marked_at
+
+        })
+
+
+    # ========================================
+    # COUNTS
+    # ========================================
+
+    total_students = len(students)
+
+    present_count = sum(
+        1
+        for student in student_list
+        if student["status"] == "present"
+    )
+
+    absent_count = (
+        total_students -
+        present_count
+    )
+
+
+    # ========================================
+    # RETURN SESSION DETAILS
+    # ========================================
+
+    return {
+
+        "session_id": session.id,
+
+        "class_id": session.class_id,
+
+        "class_name": class_item.name,
+
+        "subject": class_item.subject,
+
+        "start_time": session.start_time,
+
+        "end_time": session.end_time,
+
+        "status": session.status,
+
+        "total_students": total_students,
+
+        "present": present_count,
+
+        "absent": absent_count,
+
+        "students": student_list
+
+    }
+
+
+
+# ========================================
+# M8.4 - CLASS-WISE ATTENDANCE REPORT
+# ========================================
+
+@router.get("/class/{class_id}")
+def get_class_attendance(
+    class_id: int,
+    db: Session = Depends(get_db)
+):
+
+    # Find class
+    class_item = db.query(Class).filter(
+        Class.id == class_id
+    ).first()
+
+    if not class_item:
+        raise HTTPException(
+            status_code=404,
+            detail="Class not found"
+        )
+
+    # Get completed attendance sessions
+    sessions = db.query(AttendanceSession).filter(
+        AttendanceSession.class_id == class_id,
+        AttendanceSession.status != "active"
+    ).all()
+
+    total_sessions = len(sessions)
+
+    # Get students in this class
+    students = db.query(Student).filter(
+        Student.class_id == class_id
+    ).all()
+
+    student_reports = []
+
+    for student in students:
+
+        present_count = 0
+
+        for session in sessions:
+
+            record = db.query(
+                AttendanceRecord
+            ).filter(
+                AttendanceRecord.session_id == session.id,
+                AttendanceRecord.student_id == student.id,
+                AttendanceRecord.status == "present"
+            ).first()
+
+            if record:
+                present_count += 1
+
+        absent_count = total_sessions - present_count
+
+        if total_sessions > 0:
+            attendance_percentage = round(
+                (present_count / total_sessions) * 100,
+                1
+            )
+        else:
+            attendance_percentage = 0
+
+        student_reports.append({
+            "student_id": student.student_id,
+            "name": student.name,
+            "present": present_count,
+            "absent": absent_count,
+            "attendance_percentage": attendance_percentage
+        })
+
+    return {
+        "class_id": class_id,
+        "class_name": class_item.name,
+        "total_sessions": total_sessions,
+        "students": student_reports
+    }
