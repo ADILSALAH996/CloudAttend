@@ -937,6 +937,51 @@ async function loadTeacherRecentSessions() {
                         }
                     }
 
+
+                    // ========================================
+                    // M8.3.1 - SESSION TIME DISPLAY
+                    // ========================================
+
+                    const startTime =
+                        parseUtcDate(
+                            session.start_time
+                        );
+
+                    const endTime =
+                        parseUtcDate(
+                            session.end_time
+                        );
+
+                    let timeText = "--";
+
+                    if (
+                        startTime &&
+                        endTime
+                    ) {
+
+                        const formattedStart =
+                            startTime.toLocaleTimeString(
+                                "en-IN",
+                                {
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                }
+                            );
+
+                        const formattedEnd =
+                            endTime.toLocaleTimeString(
+                                "en-IN",
+                                {
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                }
+                            );
+
+                        timeText =
+                            `${formattedStart} – ${formattedEnd}`;
+                    }
+
+
                     return `
                         <div
                             class="session-row"
@@ -956,14 +1001,29 @@ async function loadTeacherRecentSessions() {
                                 ${session.total_students}
                             </span>
 
-                            <span>
+                            <span
+                                style="
+                                    text-align: right;
+                                    white-space: nowrap;
+                                "
+                            >
                                 ${dateText}
+                                <br>
+                                <small
+                                    style="
+                                        color: #94a3b8;
+                                        font-size: 11px;
+                                    "
+                                >
+                                    ${timeText}
+                                </small>
                             </span>
 
                         </div>
                     `;
                 }
             ).join("");
+            
 
 
         // ========================================
