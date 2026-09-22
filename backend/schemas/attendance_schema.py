@@ -22,3 +22,11 @@ class AttendanceSessionResponse(BaseModel):
 class AttendanceMark(BaseModel):
     student_id: str
     qr_token: str
+
+
+# ========================================
+# M8.5 - TEACHER MANUAL ATTENDANCE
+# ========================================
+
+class TeacherManualAttendance(BaseModel):
+    student_id: str

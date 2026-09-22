@@ -1524,7 +1524,7 @@ async function loadAttendanceSessionDetails(
                                     ${
                                         isPresent
                                             ? "Present"
-                                            : student.status
+                                            : "Absent"
                                     }
                                 </span>
 
@@ -1542,7 +1542,27 @@ async function loadAttendanceSessionDetails(
                                                 ${markedTime}
                                             </small>
                                         `
-                                        : ""
+                                        : `
+                                            <button
+                                                type="button"
+                                                class="manual-mark-btn"
+                                                data-student-id="${student.student_id}"
+                                                style="
+                                                    display: block;
+                                                    margin-top: 8px;
+                                                    padding: 6px 10px;
+                                                    border: none;
+                                                    border-radius: 7px;
+                                                    background: #2563eb;
+                                                    color: white;
+                                                    font-size: 12px;
+                                                    font-weight: 600;
+                                                    cursor: pointer;
+                                                "
+                                            >
+                                                Mark Present
+                                            </button>
+                                        `
                                 }
 
                             </div>
@@ -1551,6 +1571,39 @@ async function loadAttendanceSessionDetails(
                     `;
                 }
             ).join("");
+
+
+
+            // ========================================
+            // M8.5 - MANUAL MARK PRESENT BUTTONS
+            // ========================================
+
+            const manualMarkButtons =
+                studentList.querySelectorAll(
+                    ".manual-mark-btn"
+                );
+
+            manualMarkButtons.forEach(
+                function (button) {
+
+                    button.addEventListener(
+                        "click",
+                        function () {
+
+                            const studentId =
+                                button.dataset.studentId;
+
+                            markStudentPresent(
+                                session.session_id,
+                                studentId,
+                                button
+                            );
+                        }
+                    );
+
+                }
+            );
+
         
 
     } catch (error) {
@@ -1575,6 +1628,145 @@ async function loadAttendanceSessionDetails(
         );
     }
 }
+
+
+
+
+// ========================================
+// M8.5 - TEACHER MARK STUDENT PRESENT
+// ========================================
+
+async function markStudentPresent(
+    sessionId,
+    studentId,
+    button
+) {
+
+    const teacherData =
+        sessionStorage.getItem(
+            "teacher"
+        );
+
+    if (!teacherData) {
+
+        showToast(
+            "Please log in again.",
+            "error"
+        );
+
+        return;
+    }
+
+    const teacher =
+        JSON.parse(
+            teacherData
+        );
+
+
+    if (!teacher.teacher_id) {
+
+        showToast(
+            "Teacher information is unavailable.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const confirmed =
+        confirm(
+            "Mark this student as present?"
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    try {
+
+        button.disabled = true;
+
+        button.textContent =
+            "Marking...";
+
+
+        const response =
+            await fetch(
+                `http://127.0.0.1:8000/attendance/teacher/${teacher.teacher_id}/session/${sessionId}/mark`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        student_id:
+                            studentId
+                    })
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Failed to mark attendance"
+            );
+        }
+
+
+        showToast(
+            "Attendance marked successfully.",
+            "success"
+        );
+
+
+        // Reload the modal
+        await loadAttendanceSessionDetails(
+            sessionId
+        );
+
+
+        // Refresh recent session counts
+        await loadTeacherRecentSessions();
+
+
+        // Refresh attendance overview
+        await loadTeacherAttendanceOverview();
+
+
+    } catch (error) {
+
+        console.error(
+            "Manual attendance error:",
+            error
+        );
+
+
+        showToast(
+            error.message ||
+            "Unable to mark attendance.",
+            "error"
+        );
+
+
+        button.disabled = false;
+
+        button.textContent =
+            "Mark Present";
+    }
+}
+
 
 
 

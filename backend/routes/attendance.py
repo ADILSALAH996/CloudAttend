@@ -14,7 +14,8 @@ from models.attendance import AttendanceRecord
 from schemas.attendance_schema import (
     AttendanceSessionCreate,
     AttendanceSessionResponse,
-    AttendanceMark
+    AttendanceMark,
+    TeacherManualAttendance
 )
 
 
@@ -856,6 +857,172 @@ def get_attendance_session_details(
         "students": student_list
 
     }
+
+
+
+
+# ========================================
+# M8.5 - TEACHER MANUAL ATTENDANCE
+# ========================================
+
+@router.post(
+    "/teacher/{teacher_id}/session/{session_id}/mark"
+)
+def teacher_mark_attendance(
+    teacher_id: int,
+    session_id: int,
+    attendance_data: TeacherManualAttendance,
+    db: Session = Depends(get_db)
+):
+
+    # ========================================
+    # FIND SESSION
+    # ========================================
+
+    attendance_session = db.query(
+        AttendanceSession
+    ).filter(
+        AttendanceSession.id == session_id
+    ).first()
+
+
+    if not attendance_session:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Attendance session not found"
+        )
+
+
+    # ========================================
+    # VERIFY TEACHER OWNS THE CLASS
+    # ========================================
+
+    class_item = db.query(
+        Class
+    ).filter(
+        Class.id == attendance_session.class_id,
+        Class.teacher_id == teacher_id
+    ).first()
+
+
+    if not class_item:
+
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized for this attendance session"
+        )
+
+
+    # ========================================
+    # FIND STUDENT
+    # ========================================
+
+    student = db.query(
+        Student
+    ).filter(
+        Student.student_id ==
+        attendance_data.student_id
+    ).first()
+
+
+    if not student:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found"
+        )
+
+
+    # ========================================
+    # CHECK CLASS ENROLLMENT
+    # ========================================
+
+    if student.class_id != attendance_session.class_id:
+
+        raise HTTPException(
+            status_code=403,
+            detail="Student is not enrolled in this class"
+        )
+
+
+    # ========================================
+    # CHECK EXISTING RECORD
+    # ========================================
+
+    existing_record = db.query(
+        AttendanceRecord
+    ).filter(
+        AttendanceRecord.session_id ==
+        attendance_session.id,
+
+        AttendanceRecord.student_id ==
+        student.id
+    ).first()
+
+
+    if existing_record:
+
+        if existing_record.status == "present":
+
+            raise HTTPException(
+                status_code=409,
+                detail="Attendance already marked"
+            )
+
+        existing_record.status = "present"
+        existing_record.marked_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(existing_record)
+
+        return {
+            "message":
+                "Attendance updated successfully",
+
+            "student_id":
+                student.student_id,
+
+            "status":
+                existing_record.status,
+
+            "marked_at":
+                existing_record.marked_at
+        }
+
+
+    # ========================================
+    # CREATE ATTENDANCE RECORD
+    # ========================================
+
+    new_record = AttendanceRecord(
+        session_id=attendance_session.id,
+        student_id=student.id,
+        status="present",
+        marked_at=datetime.utcnow()
+    )
+
+
+    db.add(new_record)
+    db.commit()
+    db.refresh(new_record)
+
+
+    return {
+
+        "message":
+            "Attendance marked successfully",
+
+        "student_id":
+            student.student_id,
+
+        "status":
+            new_record.status,
+
+        "marked_at":
+            new_record.marked_at
+    }
+
 
 
 
