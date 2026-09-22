@@ -4158,7 +4158,11 @@ async function loadStudentAttendance(
 
 
                     return `
-                        <div class="attendance-record">
+                        <div
+                            class="attendance-record student-attendance-record"
+                            data-session-id="${record.session_id}"
+                            style="cursor: pointer;"
+                        >
 
                             <div>
 
@@ -4194,6 +4198,52 @@ async function loadStudentAttendance(
             ).join("");
 
 
+
+        // ========================================
+        // M8.8 - STUDENT ATTENDANCE CLICK
+        // ========================================
+
+        const studentAttendanceRecords =
+            recentAttendance.querySelectorAll(
+                ".student-attendance-record"
+            );
+
+
+        studentAttendanceRecords.forEach(
+            function (recordElement) {
+
+                recordElement.addEventListener(
+                    "click",
+                    function () {
+
+                        const sessionId =
+                            recordElement.dataset.sessionId;
+
+
+                        if (!sessionId) {
+
+                            showToast(
+                                "Attendance session information is unavailable.",
+                                "error"
+                            );
+
+                            return;
+
+                        }
+
+
+                        loadStudentSessionDetails(
+                            sessionId
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+
+
     } catch (error) {
 
         console.error(
@@ -4210,6 +4260,503 @@ async function loadStudentAttendance(
         }
     }
 }
+
+
+
+// ========================================
+// M8.8 - STUDENT SESSION DETAILS
+// ========================================
+
+async function loadStudentSessionDetails(
+    sessionId
+) {
+
+    if (!sessionId) {
+        return;
+    }
+
+
+    const studentData =
+        sessionStorage.getItem(
+            "student"
+        );
+
+
+    if (!studentData) {
+
+        showToast(
+            "Please log in again.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const student =
+        JSON.parse(
+            studentData
+        );
+
+
+    try {
+
+        const response =
+            await fetch(
+                `http://127.0.0.1:8000/attendance/session/${sessionId}`
+            );
+
+
+        const session =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                session.detail ||
+                "Failed to load session details"
+            );
+
+        }
+
+
+        // ========================================
+        // FIND CURRENT STUDENT
+        // ========================================
+
+        const studentRecord =
+            (session.students || []).find(
+                function (item) {
+
+                    return (
+                        item.student_id ===
+                        student.student_id
+                    );
+
+                }
+            );
+
+
+        if (!studentRecord) {
+
+            showToast(
+                "Your attendance record was not found.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        // ========================================
+        // FORMAT SESSION TIME
+        // ========================================
+
+        const startDate =
+            parseUtcDate(
+                session.start_time
+            );
+
+
+        const endDate =
+            parseUtcDate(
+                session.end_time
+            );
+
+
+        let sessionTime =
+            "--";
+
+
+        if (
+            startDate &&
+            endDate
+        ) {
+
+            const startTime =
+                startDate.toLocaleTimeString(
+                    "en-IN",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                );
+
+
+            const endTime =
+                endDate.toLocaleTimeString(
+                    "en-IN",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                );
+
+
+            sessionTime =
+                `${startTime} – ${endTime}`;
+        }
+
+
+        // ========================================
+        // FORMAT MARKED TIME
+        // ========================================
+
+        let markedTime =
+            "--";
+
+
+        if (studentRecord.marked_at) {
+
+            const markedDate =
+                parseUtcDate(
+                    studentRecord.marked_at
+                );
+
+
+            if (markedDate) {
+
+                markedTime =
+                    markedDate.toLocaleTimeString(
+                        "en-IN",
+                        {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                        }
+                    );
+
+            }
+        }
+
+
+        // ========================================
+        // CREATE MODAL
+        // ========================================
+
+        const modal =
+            document.createElement(
+                "div"
+            );
+
+
+        modal.id =
+            "student-session-details-modal";
+
+
+        modal.style.cssText = `
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(15, 23, 42, 0.45);
+        `;
+
+
+        modal.innerHTML = `
+
+            <div
+                style="
+                    width: min(620px, 100%);
+                    max-height: 85vh;
+                    overflow-y: auto;
+                    background: #ffffff;
+                    border-radius: 16px;
+                    padding: 28px;
+                    box-shadow:
+                        0 20px 60px
+                        rgba(15, 23, 42, 0.20);
+                "
+            >
+
+                <div
+                    style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-start;
+                        gap: 20px;
+                        margin-bottom: 24px;
+                    "
+                >
+
+                    <div>
+
+                        <p
+                            style="
+                                margin: 0 0 6px;
+                                color: #2563eb;
+                                font-size: 12px;
+                                font-weight: 700;
+                                letter-spacing: 0.12em;
+                            "
+                        >
+                            ATTENDANCE
+                        </p>
+
+
+                        <h2
+                            style="
+                                margin: 0 0 6px;
+                                color: #0f172a;
+                                font-size: 24px;
+                            "
+                        >
+                            ${session.subject}
+                        </h2>
+
+
+                        <p
+                            style="
+                                margin: 0;
+                                color: #64748b;
+                                font-size: 14px;
+                            "
+                        >
+                            ${session.class_name}
+                            · Session #${sessionId}
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        id="close-student-session-details"
+                        style="
+                            width: 36px;
+                            height: 36px;
+                            border: none;
+                            border-radius: 10px;
+                            background: #f1f5f9;
+                            color: #475569;
+                            font-size: 18px;
+                            cursor: pointer;
+                        "
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <div
+                    style="
+                        display: grid;
+                        grid-template-columns:
+                            repeat(3, 1fr);
+                        gap: 12px;
+                        margin-bottom: 24px;
+                    "
+                >
+
+                    <div
+                        style="
+                            padding: 16px;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 12px;
+                        "
+                    >
+
+                        <div
+                            style="
+                                color: #64748b;
+                                font-size: 12px;
+                                margin-bottom: 6px;
+                            "
+                        >
+                            Status
+                        </div>
+
+
+                        <strong
+                            style="
+                                color: ${
+                                    studentRecord.status === "present"
+                                        ? "#16a34a"
+                                        : "#64748b"
+                                };
+                                font-size: 18px;
+                                text-transform: capitalize;
+                            "
+                        >
+                            ${studentRecord.status}
+                        </strong>
+
+                    </div>
+
+
+                    <div
+                        style="
+                            padding: 16px;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 12px;
+                        "
+                    >
+
+                        <div
+                            style="
+                                color: #64748b;
+                                font-size: 12px;
+                                margin-bottom: 6px;
+                            "
+                        >
+                            Session Time
+                        </div>
+
+
+                        <strong
+                            style="
+                                color: #0f172a;
+                                font-size: 15px;
+                            "
+                        >
+                            ${sessionTime}
+                        </strong>
+
+                    </div>
+
+
+                    <div
+                        style="
+                            padding: 16px;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 12px;
+                        "
+                    >
+
+                        <div
+                            style="
+                                color: #64748b;
+                                font-size: 12px;
+                                margin-bottom: 6px;
+                            "
+                        >
+                            Marked At
+                        </div>
+
+
+                        <strong
+                            style="
+                                color: #0f172a;
+                                font-size: 15px;
+                            "
+                        >
+                            ${markedTime}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    style="
+                        padding-top: 18px;
+                        border-top: 1px solid #e2e8f0;
+                    "
+                >
+
+                    <p
+                        style="
+                            margin: 0 0 4px;
+                            color: #0f172a;
+                            font-weight: 600;
+                        "
+                    >
+                        ${student.name}
+                    </p>
+
+
+                    <p
+                        style="
+                            margin: 0;
+                            color: #64748b;
+                            font-size: 13px;
+                        "
+                    >
+                        ${student.student_id}
+                    </p>
+
+                </div>
+
+            </div>
+        `;
+
+
+        document.body.appendChild(
+            modal
+        );
+
+
+        // ========================================
+        // CLOSE BUTTON
+        // ========================================
+
+        const closeButton =
+            document.getElementById(
+                "close-student-session-details"
+            );
+
+
+        closeButton.addEventListener(
+            "click",
+            function () {
+
+                modal.remove();
+
+            }
+        );
+
+
+        // ========================================
+        // CLOSE WHEN CLICKING OUTSIDE
+        // ========================================
+
+        modal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target === modal
+                ) {
+
+                    modal.remove();
+
+                }
+
+            }
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Student session details error:",
+            error
+        );
+
+
+        const errorMessage =
+            error instanceof Error
+                ? error.message
+                : (
+                    error?.detail ||
+                    error?.message ||
+                    "Unable to load session details."
+                );
+
+
+        showToast(
+            errorMessage,
+            "error"
+        );
+
+    }
+}
+
 
 
 // ========================================
