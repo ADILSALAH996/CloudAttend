@@ -2000,6 +2000,589 @@ async function loadTeacherAttendanceOverview() {
 
 
 // ========================================
+// M8.6 - TEACHER ATTENDANCE REPORTS
+// ========================================
+
+const viewReportsButton =
+    document.getElementById(
+        "view-reports-btn"
+    );
+
+
+if (viewReportsButton) {
+
+    viewReportsButton.addEventListener(
+        "click",
+        function () {
+
+            loadTeacherAttendanceReports();
+
+        }
+    );
+
+}
+
+
+async function loadTeacherAttendanceReports() {
+
+    const teacherData =
+        sessionStorage.getItem(
+            "teacher"
+        );
+
+
+    if (!teacherData) {
+
+        showToast(
+            "Please log in again.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const teacher =
+            JSON.parse(
+                teacherData
+            );
+
+
+        // ========================================
+        // GET TEACHER'S CLASSES
+        // ========================================
+
+        const classResponse =
+            await fetch(
+                `http://127.0.0.1:8000/classes/?teacher_id=${teacher.teacher_id}`
+            );
+
+
+        const classes =
+            await classResponse.json();
+
+
+        if (!classResponse.ok) {
+
+            throw new Error(
+                classes.detail ||
+                "Failed to load classes"
+            );
+
+        }
+
+
+        if (
+            !classes ||
+            classes.length === 0
+        ) {
+
+            showToast(
+                "No classes found.",
+                "info"
+            );
+
+            return;
+
+        }
+
+
+        // ========================================
+        // GET ATTENDANCE FOR EACH CLASS
+        // ========================================
+
+        const reports = [];
+
+
+        for (
+            const classItem
+            of classes
+        ) {
+
+            const response =
+                await fetch(
+                    `http://127.0.0.1:8000/attendance/class/${classItem.id}`
+                );
+
+
+            if (!response.ok) {
+                continue;
+            }
+
+
+            const report =
+                await response.json();
+
+            if (
+                report.students &&
+                report.students.length > 0
+            ) {
+                reports.push(report);
+            }
+
+        }
+
+
+        if (reports.length === 0) {
+
+            showToast(
+                "No attendance reports available.",
+                "info"
+            );
+
+            return;
+
+        }
+
+
+        // ========================================
+        // CREATE REPORT MODAL
+        // ========================================
+
+        let modal =
+            document.getElementById(
+                "teacher-attendance-report-modal"
+            );
+
+
+        if (modal) {
+
+            modal.remove();
+
+        }
+
+
+        modal =
+            document.createElement(
+                "div"
+            );
+
+
+        modal.id =
+            "teacher-attendance-report-modal";
+
+
+        modal.style.position =
+            "fixed";
+
+        modal.style.inset =
+            "0";
+
+        modal.style.background =
+            "rgba(15, 23, 42, 0.45)";
+
+        modal.style.display =
+            "flex";
+
+        modal.style.alignItems =
+            "center";
+
+        modal.style.justifyContent =
+            "center";
+
+        modal.style.padding =
+            "24px";
+
+        modal.style.zIndex =
+            "99998";
+
+
+        modal.innerHTML = `
+
+            <div
+                style="
+                    width: min(900px, 100%);
+                    max-height: 85vh;
+                    overflow-y: auto;
+                    background: #ffffff;
+                    border-radius: 16px;
+                    padding: 28px;
+                    box-shadow:
+                        0 20px 60px
+                        rgba(15, 23, 42, 0.20);
+                "
+            >
+
+                <div
+                    style="
+                        display: flex;
+                        align-items: flex-start;
+                        justify-content: space-between;
+                        gap: 20px;
+                        margin-bottom: 24px;
+                    "
+                >
+
+                    <div>
+
+                        <p
+                            style="
+                                margin: 0 0 6px;
+                                color: #2563eb;
+                                font-size: 12px;
+                                font-weight: 700;
+                                letter-spacing: 0.12em;
+                            "
+                        >
+                            REPORTS
+                        </p>
+
+                        <h2
+                            style="
+                                margin: 0;
+                                color: #0f172a;
+                                font-size: 24px;
+                            "
+                        >
+                            Attendance Reports
+                        </h2>
+
+                        <p
+                            style="
+                                margin: 6px 0 0;
+                                color: #64748b;
+                                font-size: 14px;
+                            "
+                        >
+                            Student attendance across your classes.
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        id="close-teacher-report"
+                        style="
+                            border: none;
+                            background: #f1f5f9;
+                            color: #475569;
+                            width: 36px;
+                            height: 36px;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-size: 18px;
+                        "
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <div id="teacher-report-content"></div>
+
+            </div>
+
+        `;
+
+
+        document.body.appendChild(
+            modal
+        );
+
+
+        const reportContent =
+            document.getElementById(
+                "teacher-report-content"
+            );
+
+
+        reportContent.innerHTML =
+            reports.map(
+                function (report) {
+
+                    const students =
+                        report.students || [];
+
+
+                    return `
+
+                        <div
+                            style="
+                                margin-bottom: 24px;
+                                border: 1px solid #e2e8f0;
+                                border-radius: 14px;
+                                overflow: hidden;
+                            "
+                        >
+
+                            <div
+                                style="
+                                    padding: 18px;
+                                    background: #f8fafc;
+                                    border-bottom: 1px solid #e2e8f0;
+                                "
+                            >
+
+                                <h3
+                                    style="
+                                        margin: 0 0 6px;
+                                        color: #0f172a;
+                                        font-size: 18px;
+                                    "
+                                >
+                                    ${report.class_name}
+                                </h3>
+
+                                <p
+                                    style="
+                                        margin: 0;
+                                        color: #64748b;
+                                        font-size: 13px;
+                                    "
+                                >
+                                    ${report.total_sessions}
+                                    attendance sessions
+                                </p>
+
+                            </div>
+
+
+                            <div
+                                style="
+                                    overflow-x: auto;
+                                "
+                            >
+
+                                <table
+                                    style="
+                                        width: 100%;
+                                        border-collapse: collapse;
+                                    "
+                                >
+
+                                    <thead>
+
+                                        <tr>
+
+                                            <th
+                                                style="
+                                                    padding: 12px 16px;
+                                                    text-align: left;
+                                                    color: #64748b;
+                                                    font-size: 12px;
+                                                "
+                                            >
+                                                Student
+                                            </th>
+
+                                            <th
+                                                style="
+                                                    padding: 12px 16px;
+                                                    text-align: center;
+                                                    color: #64748b;
+                                                    font-size: 12px;
+                                                "
+                                            >
+                                                Present
+                                            </th>
+
+                                            <th
+                                                style="
+                                                    padding: 12px 16px;
+                                                    text-align: center;
+                                                    color: #64748b;
+                                                    font-size: 12px;
+                                                "
+                                            >
+                                                Absent
+                                            </th>
+
+                                            <th
+                                                style="
+                                                    padding: 12px 16px;
+                                                    text-align: right;
+                                                    color: #64748b;
+                                                    font-size: 12px;
+                                                "
+                                            >
+                                                Attendance
+                                            </th>
+
+                                        </tr>
+
+                                    </thead>
+
+
+                                    <tbody>
+
+                                        ${
+                                            students.length > 0
+
+                                            ? students.map(
+                                                function (student) {
+
+                                                    const percentage =
+                                                        Number(
+                                                            student.attendance_percentage || 0
+                                                        );
+
+                                                    return `
+
+                                                        <tr>
+
+                                                            <td
+                                                                style="
+                                                                    padding: 14px 16px;
+                                                                    border-top: 1px solid #e2e8f0;
+                                                                "
+                                                            >
+
+                                                                <strong>
+                                                                    ${student.name}
+                                                                </strong>
+
+                                                                <div
+                                                                    style="
+                                                                        margin-top: 3px;
+                                                                        color: #64748b;
+                                                                        font-size: 12px;
+                                                                    "
+                                                                >
+                                                                    ${student.student_id}
+                                                                </div>
+
+                                                            </td>
+
+
+                                                            <td
+                                                                style="
+                                                                    padding: 14px 16px;
+                                                                    text-align: center;
+                                                                    border-top: 1px solid #e2e8f0;
+                                                                "
+                                                            >
+                                                                ${student.present}
+                                                            </td>
+
+
+                                                            <td
+                                                                style="
+                                                                    padding: 14px 16px;
+                                                                    text-align: center;
+                                                                    border-top: 1px solid #e2e8f0;
+                                                                "
+                                                            >
+                                                                ${student.absent}
+                                                            </td>
+
+
+                                                            <td
+                                                                style="
+                                                                    padding: 14px 16px;
+                                                                    text-align: right;
+                                                                    border-top: 1px solid #e2e8f0;
+                                                                    font-weight: 700;
+                                                                    color: ${
+                                                                        percentage < 75
+                                                                            ? "#dc2626"
+                                                                            : "#16a34a"
+                                                                    };
+                                                                "
+                                                            >
+                                                                ${percentage.toFixed(1)}%
+                                                            </td>
+
+                                                        </tr>
+
+                                                    `;
+
+                                                }
+                                            ).join("")
+
+                                            : `
+                                                <tr>
+
+                                                    <td
+                                                        colspan="4"
+                                                        style="
+                                                            padding: 24px;
+                                                            text-align: center;
+                                                            color: #64748b;
+                                                        "
+                                                    >
+                                                        No students found.
+                                                    </td>
+
+                                                </tr>
+                                            `
+                                        }
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+            ).join("");
+
+
+        // ========================================
+        // CLOSE REPORT MODAL
+        // ========================================
+
+        const closeButton =
+            document.getElementById(
+                "close-teacher-report"
+            );
+
+
+        closeButton.addEventListener(
+            "click",
+            function () {
+
+                modal.remove();
+
+            }
+        );
+
+
+        modal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target === modal
+                ) {
+
+                    modal.remove();
+
+                }
+
+            }
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Teacher report error:",
+            error
+        );
+
+
+        showToast(
+            error.message ||
+            "Unable to load attendance reports.",
+            "error"
+        );
+
+    }
+
+}
+
+
+
+// ========================================
 // M7.6.2 - TEACHER TODAY'S CLASSES
 // ========================================
 

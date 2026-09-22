@@ -158,3 +158,11 @@ The login UI is intentionally separated from authentication logic. Real teacher 
 
 ### Status
 M4.1 — Teacher Login UI Completed
+
+### M8.6 — Teacher Attendance Reports
+- Connected View Reports to class attendance API
+- Added dynamic attendance report modal
+- Displays sessions, present, absent, and attendance percentage
+- Filters out classes with no enrolled students
+- Uses teacher's assigned classes dynamically
+- Tested successfully with B1 data
