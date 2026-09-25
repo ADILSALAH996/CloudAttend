@@ -21,6 +21,7 @@ from routes.auth import router as auth_router
 from routes.classes import router as classes_router 
 from routes.attendance import router as attendance_router
 from routes.schedules import router as schedules_router
+from routes.admin import router as admin_router
 from models.faculty import Faculty
 
 
@@ -31,6 +32,7 @@ app = FastAPI(title="CloudAttend API")
 app.include_router(classes_router)
 app.include_router(attendance_router)
 app.include_router(schedules_router)
+app.include_router(admin_router)
 
 app.add_middleware(
     CORSMiddleware,

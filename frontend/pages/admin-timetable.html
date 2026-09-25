@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable | CloudAttend</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body class="admin-body">
+<header class="admin-header">
+    <a href="admin-dashboard.html" class="admin-brand">
+        <span class="admin-brand-logo">CA</span>
+        <span>CloudAttend</span>
+    </a>
+    <div class="admin-header-actions">
+        <span class="admin-role">Administrator</span>
+        <button id="admin-logout" class="admin-logout" type="button">Logout</button>
+    </div>
+</header>
+<div class="admin-shell">
+    <aside class="admin-sidebar">
+        <p class="admin-sidebar-label">ADMIN</p>
+        <nav class="admin-nav">
+            <a href="admin-dashboard.html">Overview</a>
+            <a href="admin-teachers.html">Teachers</a>
+            <a href="admin-students.html">Students</a>
+            <a href="admin-batches.html">Batches</a>
+            <a href="admin-classes.html">Classes</a>
+            <a href="admin-subjects.html">Subjects</a>
+            <a href="admin-timetable.html">Timetable</a>
+            <a href="admin-attendance.html">Attendance</a>
+            <a href="admin-reports.html">Reports</a>
+        </nav>
+    </aside>
+    <main class="admin-main">
+        <p class="admin-eyebrow-main">ADMIN</p>
+        <h1>Timetable</h1>
+        <p class="admin-main-subtitle">Manage scheduled classes, faculty, rooms and time.</p>
+        
+<section class="admin-section">
+  <div class="admin-toolbar">
+    <input class="admin-search" type="search" placeholder="Search timetable">
+    <button class="admin-small-btn" type="button">+ Add Schedule</button>
+  </div>
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead><tr><th>Day</th><th>Time</th><th>Batch</th><th>Subject</th><th>Faculty</th><th>Room</th></tr></thead>
+<tbody id="admin-timetable-table">
+
+    <tr>
+        <td colspan="6">
+            Loading timetable...
+        </td>
+    </tr>
+
+</tbody>
+    </table>
+  </div>
+</section>
+    </main>
+</div>
+<script src="../assets/js/admin.js"></script>
+</body>
+</html>

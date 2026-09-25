@@ -209,6 +209,11 @@ if (teacherLoginForm) {
                 }
 
 
+                sessionStorage.removeItem(
+                    "student"
+                );
+
+
                 sessionStorage.setItem(
                     "teacher",
                     JSON.stringify(data)
@@ -287,6 +292,11 @@ if (studentLoginForm) {
                 }
 
 
+                sessionStorage.removeItem(
+                    "teacher"
+                );
+
+
                 sessionStorage.setItem(
                     "student",
                     JSON.stringify(data)
@@ -304,6 +314,88 @@ if (studentLoginForm) {
         }
     );
 }
+
+
+// ========================================
+// M9.1 - ROLE PROTECTION
+// ========================================
+
+(function enforceRoleAccess() {
+
+    const currentPage =
+        window.location.pathname
+            .split("/")
+            .pop();
+
+
+    // ========================================
+    // TEACHER PAGES
+    // ========================================
+
+    const teacherPages = [
+        "teacher-dashboard.html",
+        "students.html"
+    ];
+
+
+    if (
+        teacherPages.includes(
+            currentPage
+        )
+    ) {
+
+        const teacherData =
+            sessionStorage.getItem(
+                "teacher"
+            );
+
+
+        if (!teacherData) {
+
+            window.location.href =
+                "teacher-login.html";
+
+            return;
+
+        }
+
+    }
+
+
+    // ========================================
+    // STUDENT PAGES
+    // ========================================
+
+    const studentPages = [
+        "student-dashboard.html",
+        "attendance.html"
+    ];
+
+
+    if (
+        studentPages.includes(
+            currentPage
+        )
+    ) {
+
+        const studentData =
+            sessionStorage.getItem(
+                "student"
+            );
+
+
+        if (!studentData) {
+
+            window.location.href =
+                "student-login.html";
+
+            return;
+
+        }
+
+    }
+
+})();
 
 
 // ========================================
@@ -2782,11 +2874,11 @@ async function loadTeacherTodayClasses() {
 
             let activeSession = null;
 
-            if (entry.class_id) {
+            if (entry.id) {
 
                 const sessionResponse =
                     await fetch(
-                        `http://127.0.0.1:8000/attendance/sessions/active/${entry.class_id}`
+                        `http://127.0.0.1:8000/attendance/sessions/active/schedule/${entry.id}`
                     );
 
                 if (sessionResponse.ok) {
@@ -3026,6 +3118,7 @@ async function loadTeacherTodayClasses() {
 
                 startAttendance(
                     entry.class_id,
+                    entry.id,
                     {
                         name: entry.batch,
                         subject: entry.subject,
@@ -3384,6 +3477,7 @@ let activeAttendanceSessionId = null;
 
 async function startAttendance(
     classId,
+    scheduleId,
     classData = null
 ) {
 
@@ -3406,7 +3500,8 @@ async function startAttendance(
                     },
 
                     body: JSON.stringify({
-                        class_id: classId
+                        class_id: classId,
+                        schedule_id: scheduleId
                     })
                 }
             );
@@ -3477,6 +3572,13 @@ async function startAttendance(
 
 
 // ========================================
+// QR COUNTDOWN TIMER
+// ========================================
+
+let qrCountdownInterval = null;
+
+
+// ========================================
 // SHOW ATTENDANCE QR
 // ========================================
 
@@ -3496,16 +3598,30 @@ function showAttendanceQr(
     }
 
 
-    /*
-     * Clear previous QR
-     */
+    // ========================================
+    // CLEAR PREVIOUS TIMER
+    // ========================================
+
+    if (qrCountdownInterval) {
+
+        clearInterval(
+            qrCountdownInterval
+        );
+
+        qrCountdownInterval = null;
+    }
+
+
+    // ========================================
+    // CLEAR PREVIOUS QR
+    // ========================================
 
     qrContainer.innerHTML = "";
 
 
-    /*
-     * Generate QR
-     */
+    // ========================================
+    // GENERATE QR
+    // ========================================
 
     new QRCode(
         qrContainer,
@@ -3517,9 +3633,9 @@ function showAttendanceQr(
     );
 
 
-    /*
-     * Show class information
-     */
+    // ========================================
+    // SHOW CLASS INFORMATION
+    // ========================================
 
     const classInfo =
         document.getElementById(
@@ -3534,9 +3650,15 @@ function showAttendanceQr(
     }
 
 
-    /*
-     * Show QR expiry
-     */
+    // ========================================
+    // SHOW EXPIRY TIME
+    // ========================================
+
+    const expiryDate =
+        parseUtcDate(
+            sessionData.qr_expires_at
+        );
+
 
     const expiryElement =
         document.getElementById(
@@ -3544,13 +3666,14 @@ function showAttendanceQr(
         );
 
 
-    if (expiryElement) {
+    if (
+        expiryElement &&
+        expiryDate
+    ) {
 
         expiryElement.textContent =
             "QR expires at: " +
-            parseUtcDate(
-                sessionData.qr_expires_at
-            ).toLocaleTimeString(
+            expiryDate.toLocaleTimeString(
                 "en-IN",
                 {
                     hour: "2-digit",
@@ -3560,9 +3683,158 @@ function showAttendanceQr(
     }
 
 
-    /*
-     * Open modal
-     */
+    // ========================================
+    // CREATE / FIND COUNTDOWN
+    // ========================================
+
+    let countdownElement =
+        document.getElementById(
+            "qr-countdown"
+        );
+
+
+    if (!countdownElement) {
+
+        countdownElement =
+            document.createElement(
+                "div"
+            );
+
+        countdownElement.id =
+            "qr-countdown";
+
+
+        countdownElement.style.marginTop =
+            "12px";
+
+        countdownElement.style.fontSize =
+            "15px";
+
+        countdownElement.style.fontWeight =
+            "700";
+
+        countdownElement.style.textAlign =
+            "center";
+
+        countdownElement.style.color =
+            "#2563eb";
+
+
+        qrContainer.insertAdjacentElement(
+            "afterend",
+            countdownElement
+        );
+    }
+
+
+    // ========================================
+    // UPDATE COUNTDOWN
+    // ========================================
+
+    function updateQrCountdown() {
+
+        if (!expiryDate) {
+
+            countdownElement.textContent =
+                "QR expiry unavailable.";
+
+            return;
+        }
+
+
+        const remainingMilliseconds =
+            expiryDate.getTime() -
+            Date.now();
+
+
+        const remainingSeconds =
+            Math.max(
+                0,
+                Math.floor(
+                    remainingMilliseconds /
+                    1000
+                )
+            );
+
+
+        const minutes =
+            Math.floor(
+                remainingSeconds / 60
+            );
+
+
+        const seconds =
+            remainingSeconds % 60;
+
+
+        const formattedSeconds =
+            String(seconds).padStart(
+                2,
+                "0"
+            );
+
+
+        // ========================================
+        // QR EXPIRED
+        // ========================================
+
+        if (
+            remainingSeconds <= 0
+        ) {
+
+            countdownElement.textContent =
+                "QR expired";
+
+
+            countdownElement.style.color =
+                "#dc2626";
+
+
+            clearInterval(
+                qrCountdownInterval
+            );
+
+
+            qrCountdownInterval =
+                null;
+
+
+            return;
+        }
+
+
+        // ========================================
+        // QR STILL VALID
+        // ========================================
+
+        countdownElement.textContent =
+            `QR valid for ${minutes}:${formattedSeconds}`;
+
+
+        countdownElement.style.color =
+            remainingSeconds <= 60
+                ? "#dc2626"
+                : "#2563eb";
+    }
+
+
+    // ========================================
+    // START COUNTDOWN
+    // ========================================
+
+    updateQrCountdown();
+
+
+    qrCountdownInterval =
+        setInterval(
+            updateQrCountdown,
+            1000
+        );
+
+
+    // ========================================
+    // OPEN MODAL
+    // ========================================
 
     const modal =
         document.getElementById(
@@ -3602,6 +3874,17 @@ const closeQrButton =
 
 
 function closeAttendanceQrModal() {
+
+    // Stop the QR countdown timer
+    if (qrCountdownInterval) {
+
+        clearInterval(
+            qrCountdownInterval
+        );
+
+        qrCountdownInterval = null;
+    }
+
 
     if (attendanceQrModal) {
 
@@ -5213,19 +5496,21 @@ if (studentClassList) {
 }
 
 // ========================================
-// LOAD STUDENT TODAY'S CLASSES
+// M7.7 - LOAD STUDENT TODAY'S CLASSES
 // ========================================
-
 
 async function loadStudentTodayClasses(
     classId
 ) {
 
     if (!classId) {
+
         studentClassList.innerHTML = `
-            <p>
-                No class information is available.
-            </p>
+            <div class="empty-state">
+                <p>
+                    No class information is available.
+                </p>
+            </div>
         `;
 
         return;
@@ -5233,6 +5518,10 @@ async function loadStudentTodayClasses(
 
 
     try {
+
+        // ========================================
+        // GET STUDENT TIMETABLE
+        // ========================================
 
         const response =
             await fetch(
@@ -5248,7 +5537,7 @@ async function loadStudentTodayClasses(
 
             throw new Error(
                 timetable.detail ||
-                "Failed to load today's classes"
+                "Failed to load timetable"
             );
 
         }
@@ -5292,9 +5581,11 @@ async function loadStudentTodayClasses(
 
             studentClassList.innerHTML = `
                 <div class="empty-state">
+
                     <p>
                         No classes scheduled for today.
                     </p>
+
                 </div>
             `;
 
@@ -5303,14 +5594,16 @@ async function loadStudentTodayClasses(
 
 
         // ========================================
-        // SORT BY START TIME
+        // SORT CLASSES
         // ========================================
 
         todaysClasses.sort(
             function (a, b) {
 
-                return a.start_time.localeCompare(
-                    b.start_time
+                return (
+                    a.start_time.localeCompare(
+                        b.start_time
+                    )
                 );
 
             }
@@ -5321,7 +5614,9 @@ async function loadStudentTodayClasses(
         // FORMAT TIME
         // ========================================
 
-        function formatTime(timeString) {
+        function formatTime(
+            timeString
+        ) {
 
             const parts =
                 timeString.split(":");
@@ -5349,47 +5644,38 @@ async function loadStudentTodayClasses(
         }
 
 
-// ========================================
-// M7.8 - CHECK ATTENDANCE STATUS
-// ========================================
-
-let activeSession = null;
-let attendanceAlreadyMarked = false;
-
-try {
-
-    // ----------------------------------------
-    // CHECK ACTIVE SESSION
-    // ----------------------------------------
-
-    const sessionResponse =
-        await fetch(
-            `http://127.0.0.1:8000/attendance/sessions/active/${classId}`
-        );
-
-    if (sessionResponse.ok) {
-
-        activeSession =
-            await sessionResponse.json();
-
-    }
-
-
-    // ----------------------------------------
-    // CHECK STUDENT ATTENDANCE RECORDS
-    // ----------------------------------------
-
-    if (activeSession) {
+        // ========================================
+        // GET STUDENT DATA
+        // ========================================
 
         const studentData =
-            sessionStorage.getItem("student");
+            sessionStorage.getItem(
+                "student"
+            );
+
+
+        let student =
+            null;
 
 
         if (studentData) {
 
-            const student =
-                JSON.parse(studentData);
+            student =
+                JSON.parse(
+                    studentData
+                );
 
+        }
+
+
+        // ========================================
+        // GET ATTENDANCE HISTORY ONCE
+        // ========================================
+
+        let attendanceRecords = [];
+
+
+        if (student) {
 
             const attendanceResponse =
                 await fetch(
@@ -5399,9 +5685,71 @@ try {
 
             if (attendanceResponse.ok) {
 
-                const attendanceRecords =
+                attendanceRecords =
                     await attendanceResponse.json();
 
+            }
+
+        }
+
+
+        // ========================================
+        // CLEAR OLD CARDS
+        // ========================================
+
+        studentClassList.innerHTML = "";
+
+
+        // ========================================
+        // CHECK EACH TODAY'S CLASS
+        // ========================================
+
+        for (
+            const entry of todaysClasses
+        ) {
+
+            // ----------------------------------------
+            // Each timetable entry gets its own session
+            // ----------------------------------------
+
+            let activeSession =
+                null;
+
+
+            let attendanceAlreadyMarked =
+                false;
+
+
+            // ========================================
+            // CHECK ACTIVE SESSION
+            // ========================================
+
+            if (entry.id) {
+
+                const sessionResponse =
+                    await fetch(
+                        `http://127.0.0.1:8000/attendance/sessions/active/schedule/${entry.id}`
+                    );
+
+
+                if (sessionResponse.ok) {
+
+                    activeSession =
+                        await sessionResponse.json();
+
+                }
+
+            }
+
+
+            // ========================================
+            // CHECK WHETHER STUDENT ALREADY MARKED
+            // ========================================
+
+            if (
+                activeSession &&
+                attendanceRecords.length > 0
+            ) {
 
                 attendanceAlreadyMarked =
                     attendanceRecords.some(
@@ -5417,206 +5765,248 @@ try {
 
             }
 
-        }
 
-    }
+            // ========================================
+            // CREATE CLASS CARD
+            // ========================================
 
-} catch (error) {
-
-    console.error(
-        "Attendance status check error:",
-        error
-    );
-
-}
+            const classCard =
+                document.createElement(
+                    "div"
+                );
 
 
-        // ========================================
-        // RENDER TODAY'S CLASSES
-        // ========================================
-
-        studentClassList.innerHTML = "";
+            classCard.className =
+                "student-class-card";
 
 
-        todaysClasses.forEach(
-            function (entry) {
+            // ========================================
+            // ATTENDANCE ALREADY MARKED
+            // ========================================
 
-                const classCard =
-                    document.createElement(
-                        "div"
+            if (
+                activeSession &&
+                attendanceAlreadyMarked
+            ) {
+
+                classCard.innerHTML = `
+
+                    <div>
+
+                        <h3>
+                            ${entry.subject}
+                        </h3>
+
+
+                        <p>
+                            ${entry.batch}
+                        </p>
+
+
+                        <span>
+                            ${formatTime(entry.start_time)}
+                            –
+                            ${formatTime(entry.end_time)}
+                        </span>
+
+
+                        ${
+                            entry.room
+                                ? `
+                                    <span>
+                                        · ${entry.room}
+                                    </span>
+                                `
+                                : ""
+                        }
+
+
+                        <div
+                            style="
+                                margin-top: 8px;
+                                color: #16a34a;
+                                font-size: 14px;
+                                font-weight: 600;
+                            "
+                        >
+                            ✓ Attendance Marked
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        disabled
+                    >
+                        Already Marked
+                    </button>
+
+                `;
+
+            }
+
+
+            // ========================================
+            // ATTENDANCE AVAILABLE
+            // ========================================
+
+            else if (activeSession) {
+
+                classCard.innerHTML = `
+
+                    <div>
+
+                        <h3>
+                            ${entry.subject}
+                        </h3>
+
+
+                        <p>
+                            ${entry.batch}
+                        </p>
+
+
+                        <span>
+                            ${formatTime(entry.start_time)}
+                            –
+                            ${formatTime(entry.end_time)}
+                        </span>
+
+
+                        ${
+                            entry.room
+                                ? `
+                                    <span>
+                                        · ${entry.room}
+                                    </span>
+                                `
+                                : ""
+                        }
+
+
+                        <div
+                            style="
+                                margin-top: 8px;
+                                color: #16a34a;
+                                font-size: 14px;
+                                font-weight: 600;
+                            "
+                        >
+                            ● Attendance Available
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                    >
+                        Scan Attendance
+                    </button>
+
+                `;
+
+
+                // ========================================
+                // SCAN ATTENDANCE BUTTON
+                // ========================================
+
+                const scanButton =
+                    classCard.querySelector(
+                        "button"
                     );
 
 
-                classCard.className =
-                    "student-class-card";
+                scanButton.addEventListener(
+                    "click",
+                    function () {
 
+                        window.location.href =
+                            "attendance.html";
 
-if (activeSession) {
-
-    if (attendanceAlreadyMarked) {
-
-        classCard.innerHTML = `
-            <div>
-                <h3>
-                    ${entry.subject}
-                </h3>
-
-                <p>
-                    ${entry.batch}
-                </p>
-
-                <span>
-                    ${formatTime(entry.start_time)}
-                    –
-                    ${formatTime(entry.end_time)}
-                </span>
-
-                ${
-                    entry.room
-                        ? `
-                            <span>
-                                · ${entry.room}
-                            </span>
-                        `
-                        : ""
-                }
-
-                <div
-                    style="
-                        margin-top: 8px;
-                        color: #16a34a;
-                        font-size: 14px;
-                        font-weight: 600;
-                    "
-                >
-                    ✓ Attendance Marked
-                </div>
-            </div>
-
-            <button
-                type="button"
-                class="btn btn-secondary"
-                disabled
-            >
-                Already Marked
-            </button>
-        `;
-
-    } else {
-
-        classCard.innerHTML = `
-            <div>
-                <h3>
-                    ${entry.subject}
-                </h3>
-
-                <p>
-                    ${entry.batch}
-                </p>
-
-                <span>
-                    ${formatTime(entry.start_time)}
-                    –
-                    ${formatTime(entry.end_time)}
-                </span>
-
-                ${
-                    entry.room
-                        ? `
-                            <span>
-                                · ${entry.room}
-                            </span>
-                        `
-                        : ""
-                }
-
-                <div
-                    style="
-                        margin-top: 8px;
-                        color: #16a34a;
-                        font-size: 14px;
-                        font-weight: 600;
-                    "
-                >
-                    ● Attendance Available
-                </div>
-            </div>
-
-            <button
-                type="button"
-                class="btn btn-primary"
-                onclick="window.location.href='attendance.html'"
-            >
-                Scan Attendance
-            </button>
-        `;
-
-    }
-}
-
-
-                // ========================================
-                // M7.7.1 - NO ACTIVE ATTENDANCE SESSION
-                // ========================================
-
-                else {
-
-                    classCard.innerHTML = `
-                        <div>
-                            <h3>
-                                ${entry.subject}
-                            </h3>
-
-                            <p>
-                                ${entry.batch}
-                            </p>
-
-                            <span>
-                                ${formatTime(entry.start_time)}
-                                –
-                                ${formatTime(entry.end_time)}
-                            </span>
-
-                            ${
-                                entry.room
-                                    ? `
-                                        <span>
-                                            · ${entry.room}
-                                        </span>
-                                    `
-                                    : ""
-                            }
-
-                            <div
-                                style="
-                                    margin-top: 8px;
-                                    color: #64748b;
-                                    font-size: 14px;
-                                    font-weight: 500;
-                                "
-                            >
-                                Attendance not started
-                            </div>
-                        </div>
-
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            disabled
-                        >
-                            Attendance Not Started
-                        </button>
-                    `;
-                }
-
-
-                studentClassList.appendChild(
-                    classCard
+                    }
                 );
 
             }
-        );
 
+
+            // ========================================
+            // NO ACTIVE SESSION
+            // ========================================
+
+            else {
+
+                classCard.innerHTML = `
+
+                    <div>
+
+                        <h3>
+                            ${entry.subject}
+                        </h3>
+
+
+                        <p>
+                            ${entry.batch}
+                        </p>
+
+
+                        <span>
+                            ${formatTime(entry.start_time)}
+                            –
+                            ${formatTime(entry.end_time)}
+                        </span>
+
+
+                        ${
+                            entry.room
+                                ? `
+                                    <span>
+                                        · ${entry.room}
+                                    </span>
+                                `
+                                : ""
+                        }
+
+
+                        <div
+                            style="
+                                margin-top: 8px;
+                                color: #64748b;
+                                font-size: 14px;
+                                font-weight: 500;
+                            "
+                        >
+                            Attendance not started
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        disabled
+                    >
+                        Attendance Not Started
+                    </button>
+
+                `;
+
+            }
+
+
+            // ========================================
+            // ADD CARD TO PAGE
+            // ========================================
+
+            studentClassList.appendChild(
+                classCard
+            );
+
+        }
 
     } catch (error) {
 
@@ -5627,12 +6017,17 @@ if (activeSession) {
 
 
         studentClassList.innerHTML = `
-            <p>
-                Unable to load today's classes.
-            </p>
+            <div class="empty-state">
+
+                <p>
+                    Unable to load today's classes.
+                </p>
+
+            </div>
         `;
 
     }
+
 }
 
 

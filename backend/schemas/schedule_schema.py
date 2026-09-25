@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 
 class ScheduleCreate(BaseModel):
+    class_id: int
     batch_id: int
     subject_id: int
     faculty_id: int | None = None
@@ -19,6 +20,8 @@ class ScheduleCreate(BaseModel):
 
 class ScheduleResponse(BaseModel):
     id: int
+
+    class_id: int | None
 
     batch_id: int
     subject_id: int

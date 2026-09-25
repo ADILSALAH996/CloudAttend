@@ -100,12 +100,10 @@
 
         </section>
 
-        
-                </section>
 
 
         <!-- ========================================
-             M7.4.4 - TEACHER TIMETABLE
+            M7.4.4 - TEACHER TIMETABLE
         ======================================== -->
 
         <section class="dashboard-section">
@@ -167,13 +165,23 @@
 
                 <div class="quick-actions">
 
-                    <button id="create-class-btn">+ Create Class</button>
+                    <button
+                        type="button"
+                        id="create-class-btn"
+                    >
+                        + Create Class
+                    </button>
 
-                    <button>+ Start Attendance</button>
 
-                    <button>+ Create Assignment</button>
-
-                    <button id="view-reports-btn">View Reports</button>
+                    <button
+                        type="button"
+                        onclick="window.scrollTo({
+                            top: document.getElementById('class-list').offsetTop - 100,
+                            behavior: 'smooth'
+                        })"
+                    >
+                        + Start Attendance
+                    </button>
 
                 </div>
 

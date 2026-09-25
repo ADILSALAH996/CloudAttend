@@ -15,15 +15,38 @@ class AttendanceSession(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
+    class_id = Column(
+        Integer,
+        ForeignKey("classes.id"),
+        nullable=False
+    )
+
+    schedule_id = Column(
+        Integer,
+        ForeignKey("class_schedules.id"),
+        nullable=True
+    )
 
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False)
 
-    qr_token = Column(String, unique=True, nullable=False, index=True)
-    qr_expires_at = Column(DateTime, nullable=False)
+    qr_token = Column(
+        String,
+        unique=True,
+        nullable=False,
+        index=True
+    )
 
-    status = Column(String, default="active", nullable=False)
+    qr_expires_at = Column(
+        DateTime,
+        nullable=False
+    )
+
+    status = Column(
+        String,
+        default="active",
+        nullable=False
+    )
 
     class_ = relationship("Class", back_populates="attendance_sessions")
 

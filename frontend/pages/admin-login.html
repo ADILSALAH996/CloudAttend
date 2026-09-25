@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | CloudAttend</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body class="admin-body">
+
+<main class="admin-auth-page">
+    <section class="admin-auth-card">
+
+        <div class="admin-logo-row">
+            <div class="admin-logo">CA</div>
+        </div>
+
+        <div class="admin-eyebrow">ADMIN PORTAL</div>
+
+        <h1>Admin Login</h1>
+        <p class="admin-auth-subtitle">
+            Sign in to manage CloudAttend.
+        </p>
+
+        <form id="admin-login-form">
+            <div class="admin-form-group">
+                <label for="admin-email">Admin Email</label>
+                <input
+                    id="admin-email"
+                    type="email"
+                    placeholder="Enter admin email"
+                    autocomplete="username"
+                    required
+                >
+            </div>
+
+            <div class="admin-form-group">
+                <label for="admin-password">Password</label>
+                <input
+                    id="admin-password"
+                    type="password"
+                    placeholder="Enter admin password"
+                    autocomplete="current-password"
+                    required
+                >
+            </div>
+
+            <button
+                id="admin-login-button"
+                class="admin-primary-btn"
+                type="submit"
+            >
+                Sign In
+            </button>
+        </form>
+
+        <div id="admin-login-error" class="admin-error"></div>
+
+        <a class="admin-back-link" href="../index.html">
+            ← Back to CloudAttend
+        </a>
+
+    </section>
+</main>
+
+<script>
+
+    const form =
+        document.getElementById("admin-login-form");
+
+    const errorBox =
+        document.getElementById("admin-login-error");
+
+    const button =
+        document.getElementById("admin-login-button");
+
+    // LOCAL DEVELOPMENT ONLY.
+    // Move this to backend/Cognito before production deployment.
+    const ADMIN_EMAIL = "admin@cloudattend.com";
+    const ADMIN_PASSWORD = "admin123";
+
+    if (sessionStorage.getItem("admin")) {
+        window.location.href = "admin-dashboard.html";
+    }
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        const email =
+            document.getElementById("admin-email")
+                .value
+                .trim();
+
+        const password =
+            document.getElementById("admin-password")
+                .value;
+
+        errorBox.style.display = "none";
+
+        if (
+            email !== ADMIN_EMAIL ||
+            password !== ADMIN_PASSWORD
+        ) {
+            errorBox.textContent =
+                "Invalid admin email or password.";
+            errorBox.style.display = "block";
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Signing In...";
+
+        sessionStorage.setItem(
+            "admin",
+            JSON.stringify({
+                role: "admin",
+                email: ADMIN_EMAIL,
+                name: "CloudAttend Admin"
+            })
+        );
+
+        sessionStorage.removeItem("teacher");
+        sessionStorage.removeItem("student");
+
+        window.location.href = "admin-dashboard.html";
+    });
+
+</script>
+
+</body>
+</html>

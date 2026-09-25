@@ -137,7 +137,10 @@ ul{
     gap: 10px;
 }
 
-.nav-buttons button {
+.nav-buttons button,
+.nav-buttons a {
+    display: inline-block;
+
     padding: 9px 16px;
 
     border-radius: 8px;
@@ -146,6 +149,8 @@ ul{
     font-weight: 500;
 
     cursor: pointer;
+
+    text-decoration: none;
 
     transition: all 0.2s ease;
 }
@@ -169,6 +174,26 @@ ul{
 .primary-btn:hover {
     background-color: #1d4ed8;
 }
+
+
+.portal-admin-link {
+    display: inline-block;
+
+    margin-top: 14px;
+
+    color: #64748b;
+
+    font-size: 14px;
+
+    text-decoration: none;
+
+    transition: color 0.2s ease;
+}
+
+.portal-admin-link:hover {
+    color: #2563eb;
+}
+
 
 /* ========================================
    M3 - HERO SECTION

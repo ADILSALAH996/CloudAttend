@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 
 from models.class_model import Class
+from models.class_schedule import ClassSchedule
 from models.student import Student
 from models.attendance import AttendanceSession
 from models.attendance import AttendanceRecord
@@ -52,7 +53,10 @@ def create_attendance_session(
     db: Session = Depends(get_db)
 ):
 
-    # Check that the class exists
+    # ========================================
+    # CHECK CLASS
+    # ========================================
+
     class_item = db.query(Class).filter(
         Class.id == session_data.class_id
     ).first()
@@ -65,23 +69,58 @@ def create_attendance_session(
         )
 
 
-    # Prevent multiple active sessions
-    # for the same class.
+    # ========================================
+    # CHECK SCHEDULE
+    # ========================================
+
+    schedule = db.query(
+        ClassSchedule
+    ).filter(
+        ClassSchedule.id ==
+        session_data.schedule_id
+    ).first()
+
+    if not schedule:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Schedule not found"
+        )
+
+
+    # ========================================
+    # VERIFY CLASS ↔ SCHEDULE
+    # ========================================
+
+    if schedule.class_id != session_data.class_id:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Schedule does not belong to this class"
+        )
+
+
+    # ========================================
+    # PREVENT DUPLICATE ACTIVE SESSION
+    # ========================================
 
     existing_session = db.query(
         AttendanceSession
     ).filter(
-        AttendanceSession.class_id == session_data.class_id,
-        AttendanceSession.status == "active",
-        AttendanceSession.end_time > datetime.utcnow()
-    ).first()
+        AttendanceSession.schedule_id ==
+        session_data.schedule_id,
 
+        AttendanceSession.status == "active",
+
+        AttendanceSession.end_time >
+        datetime.utcnow()
+    ).first()
 
     if existing_session:
 
         raise HTTPException(
             status_code=409,
-            detail="An attendance session is already active for this class"
+            detail="An attendance session is already active for this schedule"
         )
 
 
@@ -97,14 +136,20 @@ def create_attendance_session(
     )
 
 
-    # QR expires after 10 minutes
+    # ========================================
+    # QR EXPIRY
+    # ========================================
+
     qr_expires_at = (
         start_time +
-        timedelta(minutes=10)
+        timedelta(minutes=5)
     )
 
 
-    # Generate secure random QR token
+    # ========================================
+    # GENERATE TOKEN
+    # ========================================
+
     qr_token = secrets.token_urlsafe(32)
 
 
@@ -113,17 +158,27 @@ def create_attendance_session(
     # ========================================
 
     new_session = AttendanceSession(
+
         class_id=session_data.class_id,
+
+        schedule_id=session_data.schedule_id,
+
         start_time=start_time,
+
         end_time=end_time,
+
         qr_token=qr_token,
+
         qr_expires_at=qr_expires_at,
+
         status="active"
     )
 
 
     db.add(new_session)
+
     db.commit()
+
     db.refresh(new_session)
 
 
@@ -186,20 +241,25 @@ def stop_attendance_session(
 # ========================================
 
 @router.get(
-    "/sessions/active/{class_id}",
+    "/sessions/active/schedule/{schedule_id}",
     response_model=AttendanceSessionResponse
 )
 def get_active_attendance_session(
-    class_id: int,
+    schedule_id: int,
     db: Session = Depends(get_db)
 ):
 
     active_session = db.query(
         AttendanceSession
     ).filter(
-        AttendanceSession.class_id == class_id,
-        AttendanceSession.status == "active",
-        AttendanceSession.end_time > datetime.utcnow()
+        AttendanceSession.schedule_id ==
+        schedule_id,
+
+        AttendanceSession.status ==
+        "active",
+
+        AttendanceSession.end_time >
+        datetime.utcnow()
     ).first()
 
 
@@ -212,6 +272,7 @@ def get_active_attendance_session(
 
 
     return active_session
+
 
 
 

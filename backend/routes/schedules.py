@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
+
 from models.class_schedule import ClassSchedule
+from models.class_model import Class
 from models.batch import Batch
 from models.subject import Subject
 from models.faculty import Faculty
@@ -47,7 +49,25 @@ def create_schedule(
     db: Session = Depends(get_db)
 ):
 
-    # Check batch
+    # ========================================
+    # CHECK CLASS
+    # ========================================
+
+    class_item = db.query(Class).filter(
+        Class.id == schedule_data.class_id
+    ).first()
+
+    if not class_item:
+        raise HTTPException(
+            status_code=404,
+            detail="Class not found"
+        )
+
+
+    # ========================================
+    # CHECK BATCH
+    # ========================================
+
     batch = db.query(Batch).filter(
         Batch.id == schedule_data.batch_id
     ).first()
@@ -58,7 +78,11 @@ def create_schedule(
             detail="Batch not found"
         )
 
-    # Check subject
+
+    # ========================================
+    # CHECK SUBJECT
+    # ========================================
+
     subject = db.query(Subject).filter(
         Subject.id == schedule_data.subject_id
     ).first()
@@ -69,7 +93,11 @@ def create_schedule(
             detail="Subject not found"
         )
 
-    # Check faculty
+
+    # ========================================
+    # CHECK FACULTY
+    # ========================================
+
     faculty = db.query(Faculty).filter(
         Faculty.id == schedule_data.faculty_id
     ).first()
@@ -80,27 +108,51 @@ def create_schedule(
             detail="Faculty not found"
         )
 
-    # Validate time
+
+    # ========================================
+    # VALIDATE TIME
+    # ========================================
+
     if schedule_data.start_time >= schedule_data.end_time:
+
         raise HTTPException(
             status_code=400,
             detail="Start time must be before end time"
         )
 
+
+    # ========================================
+    # CREATE SCHEDULE
+    # ========================================
+
     new_schedule = ClassSchedule(
+
+        class_id=schedule_data.class_id,
+
         batch_id=schedule_data.batch_id,
+
         subject_id=schedule_data.subject_id,
+
         faculty_id=schedule_data.faculty_id,
+
         day_of_week=schedule_data.day_of_week,
+
         start_time=schedule_data.start_time,
+
         end_time=schedule_data.end_time,
+
         room=schedule_data.room,
+
         schedule_type=schedule_data.schedule_type
     )
 
+
     db.add(new_schedule)
+
     db.commit()
+
     db.refresh(new_schedule)
+
 
     return new_schedule
 

@@ -175,3 +175,102 @@ M4.1 — Teacher Login UI Completed
 - Reused existing session details API
 - Verified UTC to IST time conversion
 - Tested successfully
+
+
+
+---
+
+## M7 — Timetable & Live Class System
+
+**Date:** 25 September 2026
+
+### Completed
+
+- Implemented read-only timetable architecture using PostgreSQL.
+- Added `class_schedules` with class, batch, subject, faculty, day, time, room and schedule type.
+- Added timetable APIs for:
+  - All schedules
+  - Batch schedules
+  - Faculty schedules
+  - Class schedules
+- Connected the Teacher Dashboard to the teacher's faculty timetable.
+- Added timetable class status handling:
+  - Upcoming
+  - Active
+  - Completed
+- Restricted Teacher attendance start to the scheduled class.
+- Connected attendance sessions to `schedule_id`.
+- Implemented schedule-based active attendance session lookup.
+- Implemented Student live-session detection using 5-second polling.
+- Added Student `Attendance Available` state for active scheduled sessions.
+- Connected Student live sessions to the existing QR scanner.
+- Implemented QR-based attendance marking.
+- Added visible QR expiry countdown.
+- QR validity is limited to 5 minutes.
+- Implemented Teacher session stopping.
+- Verified stopped sessions are no longer detected as active.
+- Verified duplicate attendance is rejected.
+- Verified invalid QR tokens are rejected.
+- Verified expired QR tokens are rejected.
+- Verified attendance records are stored in PostgreSQL.
+- Completed end-to-end Teacher → Student → QR → Attendance workflow testing.
+
+### API / Backend Changes
+
+- Added `schedule_id` to attendance session creation.
+- Added schedule-based active session endpoint:
+  - `GET /attendance/sessions/active/schedule/{schedule_id}`
+- Updated schedule creation to include `class_id`.
+- Added scheduled-class validation for attendance sessions.
+- Added QR expiry validation.
+
+### Frontend Changes
+
+- Teacher Dashboard now passes the timetable `schedule_id` when starting attendance.
+- Student Dashboard polls for active attendance sessions every 5 seconds.
+- Student Dashboard displays `Attendance Available` when an active session exists.
+- Added QR countdown timer based on backend `qr_expires_at`.
+- Added QR expiration display.
+
+### Testing
+
+- Teacher timetable tested successfully.
+- Student timetable tested successfully.
+- Active class detection tested successfully.
+- Attendance session creation tested successfully.
+- Student live-session detection tested successfully.
+- QR scanning tested successfully.
+- Attendance marking tested successfully.
+- Duplicate attendance returned `409 Conflict`.
+- Invalid QR returned `404 Not Found`.
+- Expired QR returned `400 Bad Request`.
+- Stopped session returned no active session.
+- PostgreSQL attendance record verified.
+
+### Concepts Learned
+
+- Timetable-driven application logic
+- Foreign-key relationships
+- Schedule-based business rules
+- Polling
+- QR token validation
+- Session lifecycle management
+- Attendance validation
+- PostgreSQL data verification
+- Frontend/backend integration
+- UTC and local-time handling
+- Incremental API testing with Swagger
+
+### Architecture Decision
+
+The timetable remains the source of truth for scheduled classes.
+
+Teacher attendance sessions are created only for the corresponding timetable entry.
+
+Student live-session detection uses polling initially rather than WebSockets.
+
+WebSockets will not be introduced until there is a clear requirement for them.
+
+### Status
+
+M7 — Timetable & Live Class System Completed
