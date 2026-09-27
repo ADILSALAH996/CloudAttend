@@ -724,7 +724,7 @@ async function loadTeacherTotalStudents() {
         const teacher =
             JSON.parse(teacherData);
 
-        if (!teacher.faculty_id) {
+        if (!teacher.teacher_id) {
             totalStudentsCount.textContent = "--";
             return;
         }
@@ -732,7 +732,7 @@ async function loadTeacherTotalStudents() {
         // Get teacher's timetable
         const response =
             await fetch(
-                `http://127.0.0.1:8000/schedules/faculty/${teacher.faculty_id}`
+                `http://127.0.0.1:8000/schedules/teacher/${teacher.teacher_id}`
             );
 
         const timetable =
@@ -1957,9 +1957,9 @@ async function loadTeacherAttendanceOverview() {
         const teacher =
             JSON.parse(teacherData);
 
-        if (!teacher.faculty_id) {
+        if (!teacher.teacher_id) {
             overviewContainer.innerHTML =
-                "<p>No faculty information is available.</p>";
+                "<p>Teacher information is unavailable.</p>";
 
             return;
         }
@@ -1970,7 +1970,7 @@ async function loadTeacherAttendanceOverview() {
 
         const timetableResponse =
             await fetch(
-                `http://127.0.0.1:8000/schedules/faculty/${teacher.faculty_id}`
+                `http://127.0.0.1:8000/schedules/teacher/${teacher.teacher_id}`
             );
 
         const timetable =
@@ -2752,30 +2752,30 @@ async function loadTeacherTodayClasses() {
         return;
     }
 
-    const teacher =
-        JSON.parse(teacherData);
+const teacher =
+    JSON.parse(teacherData);
 
-    if (!teacher.faculty_id) {
+if (!teacher.teacher_id) {
 
-        classList.innerHTML = `
-            <p>
-                No faculty information is available.
-            </p>
-        `;
+    classList.innerHTML = `
+        <p>
+            Teacher information is unavailable.
+        </p>
+    `;
 
-        return;
-    }
+    return;
+}
 
-    try {
+try {
 
-        // ========================================
-        // GET TEACHER TIMETABLE
-        // ========================================
+    // ========================================
+    // GET TEACHER TIMETABLE
+    // ========================================
 
-        const response =
-            await fetch(
-                `http://127.0.0.1:8000/schedules/faculty/${teacher.faculty_id}`
-            );
+    const response =
+        await fetch(
+            `http://127.0.0.1:8000/schedules/teacher/${teacher.teacher_id}`
+        );
 
         const timetable =
             await response.json();
@@ -3204,25 +3204,24 @@ async function loadTeacherTimetable() {
         );
 
 
-    if (!teacher.faculty_id) {
+        if (!teacher.teacher_id) {
 
-        teacherTimetable.innerHTML = `
-            <p>
-                No faculty information is available.
-            </p>
-        `;
+            teacherTimetable.innerHTML = `
+                <p>
+                    Teacher information is unavailable.
+                </p>
+            `;
 
-        return;
+            return;
 
-    }
+        }
 
+        try {
 
-    try {
-
-        const response =
-            await fetch(
-                `http://127.0.0.1:8000/schedules/faculty/${teacher.faculty_id}`
-            );
+            const response =
+                await fetch(
+                    `http://127.0.0.1:8000/schedules/teacher/${teacher.teacher_id}`
+                );
 
 
         const timetable =

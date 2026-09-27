@@ -32,6 +32,13 @@ class ClassSchedule(Base):
         nullable=True
     )
 
+    # Teacher actually assigned to this timetable slot
+    teacher_id = Column(
+        Integer,
+        ForeignKey("teachers.id"),
+        nullable=False
+    )
+
     faculty_id = Column(
         Integer,
         ForeignKey("faculty.id"),

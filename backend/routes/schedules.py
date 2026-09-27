@@ -8,6 +8,7 @@ from models.class_model import Class
 from models.batch import Batch
 from models.subject import Subject
 from models.faculty import Faculty
+from models.teacher import Teacher
 
 from schemas.schedule_schema import (
     ScheduleCreate,
@@ -109,6 +110,23 @@ def create_schedule(
         )
 
 
+
+    # ========================================
+    # CHECK TEACHER
+    # ========================================
+
+    teacher = db.query(Teacher).filter(
+        Teacher.id == schedule_data.teacher_id
+    ).first()
+
+    if not teacher:
+        raise HTTPException(
+            status_code=404,
+            detail="Teacher not found"
+        )
+
+
+
     # ========================================
     # VALIDATE TIME
     # ========================================
@@ -132,6 +150,8 @@ def create_schedule(
         batch_id=schedule_data.batch_id,
 
         subject_id=schedule_data.subject_id,
+
+        teacher_id=schedule_data.teacher_id,
 
         faculty_id=schedule_data.faculty_id,
 
@@ -210,6 +230,80 @@ def get_schedules(
         ClassSchedule.day_of_week,
         ClassSchedule.start_time
     ).all()
+
+
+
+# ========================================
+# M9.x - GET SCHEDULES BY TEACHER
+# ========================================
+
+@router.get(
+    "/teacher/{teacher_id}",
+    response_model=list[TeacherScheduleResponse]
+)
+def get_teacher_schedule(
+    teacher_id: int,
+    db: Session = Depends(get_db)
+):
+
+    teacher = db.query(Teacher).filter(
+        Teacher.id == teacher_id
+    ).first()
+
+    if not teacher:
+        raise HTTPException(
+            status_code=404,
+            detail="Teacher not found"
+        )
+
+    schedules = (
+        db.query(
+            ClassSchedule,
+            Batch,
+            Subject,
+            Faculty
+        )
+        .join(
+            Batch,
+            ClassSchedule.batch_id == Batch.id
+        )
+        .join(
+            Subject,
+            ClassSchedule.subject_id == Subject.id
+        )
+        .outerjoin(
+            Faculty,
+            ClassSchedule.faculty_id == Faculty.id
+        )
+        .filter(
+            ClassSchedule.teacher_id == teacher_id
+        )
+        .order_by(
+            ClassSchedule.day_of_week,
+            ClassSchedule.start_time
+        )
+        .all()
+    )
+
+    timetable = []
+
+    for schedule, batch, subject, faculty in schedules:
+
+        timetable.append({
+            "id": schedule.id,
+            "class_id": schedule.class_id,
+            "teacher_id": schedule.teacher_id,
+            "day_of_week": schedule.day_of_week,
+            "start_time": schedule.start_time,
+            "end_time": schedule.end_time,
+            "batch": batch.name,
+            "subject": subject.name,
+            "faculty": faculty.name if faculty else None,
+            "room": schedule.room,
+            "schedule_type": schedule.schedule_type
+        })
+
+    return timetable
 
 
 # ========================================

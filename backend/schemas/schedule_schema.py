@@ -10,6 +10,7 @@ class ScheduleCreate(BaseModel):
     class_id: int
     batch_id: int
     subject_id: int
+    teacher_id: int
     faculty_id: int | None = None
     day_of_week: str
     start_time: time
@@ -25,6 +26,7 @@ class ScheduleResponse(BaseModel):
 
     batch_id: int
     subject_id: int
+    teacher_id: int
     faculty_id: int | None
 
     day_of_week: str
@@ -47,6 +49,7 @@ class TeacherScheduleResponse(BaseModel):
 
     batch: str
     subject: str
+    teacher_id: int
     faculty: str | None
 
     room: str | None
