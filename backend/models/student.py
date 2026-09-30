@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -12,7 +12,23 @@ class Student(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     password = Column(String, nullable=False)
 
-    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
+    class_id = Column(
+        Integer,
+        ForeignKey("classes.id"),
+        nullable=False
+    )
+
+    batch_id = Column(
+        Integer,
+        ForeignKey("batches.id"),
+        nullable=True
+    )
+
+    is_active = Column(
+        Boolean,
+        nullable=False,
+        default=True
+    )
 
     class_ = relationship(
         "Class",

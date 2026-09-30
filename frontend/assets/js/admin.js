@@ -1,90 +1,42 @@
-// ========================================
-// CLOUDATTEND ADMIN PORTAL
-// ========================================
-
 (function () {
 
-    const API_BASE =
-        "http://127.0.0.1:8000";
-
-    const ADMIN_LOGIN_PAGE =
-        "admin-login.html";
-
-
-    // ========================================
-    // HELPERS
-    // ========================================
+    const API_BASE = "http://127.0.0.1:8000";
+    const ADMIN_LOGIN_PAGE = "admin-login.html";
 
     function isAdminLoggedIn() {
-
-        return Boolean(
-            sessionStorage.getItem("admin")
-        );
-
+        return Boolean(sessionStorage.getItem("admin"));
     }
-
 
     function requireAdmin() {
-
         if (!isAdminLoggedIn()) {
-
-            window.location.href =
-                ADMIN_LOGIN_PAGE;
-
+            window.location.href = ADMIN_LOGIN_PAGE;
             return false;
-
         }
-
         return true;
-
     }
 
-
     function escapeHtml(value) {
-
-        if (
-            value === null ||
-            value === undefined
-        ) {
-
-            return "";
-
-        }
-
+        if (value === null || value === undefined) return "";
         return String(value)
             .replaceAll("&", "&amp;")
             .replaceAll("<", "&lt;")
             .replaceAll(">", "&gt;")
             .replaceAll('"', "&quot;")
             .replaceAll("'", "&#039;");
-
     }
 
-
     function parseUtcDate(timestamp) {
-
-        if (!timestamp) {
-            return null;
-        }
-
+        if (!timestamp) return null;
         const normalized =
             timestamp.endsWith("Z")
                 ? timestamp
                 : timestamp + "Z";
-
         return new Date(normalized);
-
     }
 
-
     function formatDate(timestamp) {
-
-        const date =
-            parseUtcDate(timestamp);
-
-        if (!date) {
-            return "--";
-        }
+        const date = parseUtcDate(timestamp);
+        if (!date) return "--";
 
         return date.toLocaleDateString(
             "en-IN",
@@ -94,18 +46,11 @@
                 year: "numeric"
             }
         );
-
     }
 
-
     function formatTime(timestamp) {
-
-        const date =
-            parseUtcDate(timestamp);
-
-        if (!date) {
-            return "--";
-        }
+        const date = parseUtcDate(timestamp);
+        if (!date) return "--";
 
         return date.toLocaleTimeString(
             "en-IN",
@@ -114,31 +59,22 @@
                 minute: "2-digit"
             }
         );
-
     }
 
+    function formatTimeRange(startTime, endTime) {
 
-    function formatTimeRange(
-        startTime,
-        endTime
-    ) {
+        function formatValue(timeString) {
 
-        function formatTimeValue(
-            timeString
-        ) {
-
-            if (!timeString) {
-                return "--";
-            }
+            if (!timeString) return "--";
 
             const parts =
-                timeString.split(":");
+                String(timeString).split(":");
 
             let hour =
                 Number(parts[0]);
 
             const minute =
-                parts[1];
+                parts[1] || "00";
 
             const period =
                 hour >= 12
@@ -149,80 +85,41 @@
                 hour % 12 || 12;
 
             return `${hour}:${minute} ${period}`;
-
         }
 
-
-        return `${formatTimeValue(startTime)} – ${formatTimeValue(endTime)}`;
-
+        return `${formatValue(startTime)} – ${formatValue(endTime)}`;
     }
 
+    function statusBadge(status) {
 
-    function statusBadge(
-        status
-    ) {
-
-        const normalized =
-            String(status || "")
-                .toLowerCase();
-
-
-        let label =
-            status || "Active";
-
-
-        if (
-            normalized ===
-            "stopped"
-        ) {
-
-            label = "Stopped";
-
-        }
-
-
-        if (
-            normalized ===
-            "active"
-        ) {
-
-            label = "Active";
-
-        }
-
-
-        if (
-            normalized ===
-            "completed"
-        ) {
-
-            label = "Completed";
-
-        }
-
+        const value =
+            String(status || "Active");
 
         return `
             <span class="admin-badge">
-                ${escapeHtml(label)}
+                ${escapeHtml(value)}
             </span>
         `;
-
     }
 
-
     async function fetchJson(
-        endpoint
+        endpoint,
+        options = {}
     ) {
 
         const response =
             await fetch(
-                `${API_BASE}${endpoint}`
+                `${API_BASE}${endpoint}`,
+                options
             );
 
+        let data = {};
 
-        const data =
-            await response.json();
-
+        try {
+            data = await response.json();
+        } catch (error) {
+            data = {};
+        }
 
         if (!response.ok) {
 
@@ -230,18 +127,10 @@
                 data.detail ||
                 `Request failed: ${response.status}`
             );
-
         }
 
-
         return data;
-
     }
-
-
-    // ========================================
-    // LOGOUT
-    // ========================================
 
     function setupLogout() {
 
@@ -250,11 +139,7 @@
                 "admin-logout"
             );
 
-
-        if (!button) {
-            return;
-        }
-
+        if (!button) return;
 
         button.addEventListener(
             "click",
@@ -264,19 +149,11 @@
                     "admin"
                 );
 
-
                 window.location.href =
                     ADMIN_LOGIN_PAGE;
-
             }
         );
-
     }
-
-
-    // ========================================
-    // ACTIVE NAVIGATION
-    // ========================================
 
     function setupActiveNav() {
 
@@ -285,40 +162,21 @@
                 .split("/")
                 .pop();
 
-
         document
-            .querySelectorAll(
-                ".admin-nav a"
-            )
+            .querySelectorAll(".admin-nav a")
             .forEach(
                 function (link) {
 
-                    const target =
-                        link.getAttribute(
-                            "href"
-                        );
-
-
                     if (
-                        target ===
+                        link.getAttribute("href") ===
                         currentPage
                     ) {
 
-                        link.classList.add(
-                            "active"
-                        );
-
+                        link.classList.add("active");
                     }
-
                 }
             );
-
     }
-
-
-    // ========================================
-    // M9.5 - OVERVIEW
-    // ========================================
 
     async function loadAdminOverview() {
 
@@ -342,18 +200,14 @@
                 "admin-attendance-sessions"
             );
 
-
         if (
             !students &&
             !teachers &&
             !classes &&
             !sessions
         ) {
-
             return;
-
         }
-
 
         try {
 
@@ -362,30 +216,25 @@
                     "/admin/overview"
                 );
 
-
             if (students) {
                 students.textContent =
-                    data.total_students;
+                    data.total_students ?? 0;
             }
-
 
             if (teachers) {
                 teachers.textContent =
-                    data.total_teachers;
+                    data.total_teachers ?? 0;
             }
-
 
             if (classes) {
                 classes.textContent =
-                    data.total_classes;
+                    data.total_classes ?? 0;
             }
-
 
             if (sessions) {
                 sessions.textContent =
-                    data.total_attendance_sessions;
+                    data.total_attendance_sessions ?? 0;
             }
-
 
         } catch (error) {
 
@@ -393,15 +242,8 @@
                 "Admin overview error:",
                 error
             );
-
         }
-
     }
-
-
-    // ========================================
-    // M9.7 - TEACHERS
-    // ========================================
 
     async function loadAdminTeachers() {
 
@@ -410,11 +252,7 @@
                 "admin-teachers-table"
             );
 
-
-        if (!table) {
-            return;
-        }
-
+        if (!table) return;
 
         try {
 
@@ -422,7 +260,6 @@
                 await fetchJson(
                     "/admin/teachers"
                 );
-
 
             if (
                 !Array.isArray(teachers) ||
@@ -438,9 +275,7 @@
                 `;
 
                 return;
-
             }
-
 
             table.innerHTML =
                 teachers.map(
@@ -484,10 +319,8 @@
 
                             </tr>
                         `;
-
                     }
                 ).join("");
-
 
         } catch (error) {
 
@@ -496,7 +329,6 @@
                 error
             );
 
-
             table.innerHTML = `
                 <tr>
                     <td colspan="5">
@@ -504,9 +336,7 @@
                     </td>
                 </tr>
             `;
-
         }
-
     }
 
 
@@ -521,11 +351,7 @@
                 "admin-students-table"
             );
 
-
-        if (!table) {
-            return;
-        }
-
+        if (!table) return;
 
         try {
 
@@ -534,70 +360,14 @@
                     "/admin/students"
                 );
 
+            window.adminStudents =
+                Array.isArray(students)
+                    ? students
+                    : [];
 
-            if (
-                !Array.isArray(students) ||
-                students.length === 0
-            ) {
-
-                table.innerHTML = `
-                    <tr>
-                        <td colspan="5">
-                            No students found.
-                        </td>
-                    </tr>
-                `;
-
-                return;
-
-            }
-
-
-            table.innerHTML =
-                students.map(
-                    function (student) {
-
-                        return `
-                            <tr>
-
-                                <td>
-                                    ${escapeHtml(
-                                        student.student_id
-                                    )}
-                                </td>
-
-                                <td>
-                                    <strong>
-                                        ${escapeHtml(
-                                            student.name
-                                        )}
-                                    </strong>
-                                </td>
-
-                                <td>
-                                    ${escapeHtml(
-                                        student.email
-                                    )}
-                                </td>
-
-                                <td>
-                                    ${escapeHtml(
-                                        student.class_name
-                                    )}
-                                </td>
-
-                                <td>
-                                    ${statusBadge(
-                                        "Active"
-                                    )}
-                                </td>
-
-                            </tr>
-                        `;
-
-                    }
-                ).join("");
-
+            renderAdminStudents(
+                window.adminStudents
+            );
 
         } catch (error) {
 
@@ -606,17 +376,570 @@
                 error
             );
 
-
             table.innerHTML = `
                 <tr>
-                    <td colspan="5">
+                    <td colspan="7">
                         Unable to load students.
                     </td>
                 </tr>
             `;
+        }
+    }
 
+
+    function renderAdminStudents(students) {
+
+        const table =
+            document.getElementById(
+                "admin-students-table"
+            );
+
+        if (!table) return;
+
+        if (
+            !Array.isArray(students) ||
+            students.length === 0
+        ) {
+
+            table.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        No students found.
+                    </td>
+                </tr>
+            `;
+
+            return;
         }
 
+        table.innerHTML =
+            students.map(
+                function (student) {
+
+                    const active =
+                        Boolean(
+                            student.is_active
+                        );
+
+                    return `
+                        <tr>
+
+                            <td>
+                                ${escapeHtml(
+                                    student.student_id
+                                )}
+                            </td>
+
+                            <td>
+                                <strong>
+                                    ${escapeHtml(
+                                        student.name
+                                    )}
+                                </strong>
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    student.email
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    student.class_name ||
+                                    "Not assigned"
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    student.batch_name ||
+                                    "Not assigned"
+                                )}
+                            </td>
+
+                            <td>
+                                ${statusBadge(
+                                    active
+                                        ? "Active"
+                                        : "Inactive"
+                                )}
+                            </td>
+
+                            <td>
+
+                                <button
+                                    class="student-action-btn"
+                                    type="button"
+                                    data-student-status="${escapeHtml(
+                                        student.student_id
+                                    )}"
+                                    data-active="${active}"
+                                >
+                                    ${
+                                        active
+                                            ? "Deactivate"
+                                            : "Reactivate"
+                                    }
+                                </button>
+
+                            </td>
+
+                        </tr>
+                    `;
+                }
+            ).join("");
+    }
+
+
+    async function loadStudentFormOptions() {
+
+        const classSelect =
+            document.getElementById(
+                "student-class"
+            );
+
+        const batchSelect =
+            document.getElementById(
+                "student-batch"
+            );
+
+        if (
+            !classSelect ||
+            !batchSelect
+        ) {
+            return;
+        }
+
+        classSelect.innerHTML = `
+            <option value="">
+                Select class
+            </option>
+        `;
+
+        batchSelect.innerHTML = `
+            <option value="">
+                Select batch
+            </option>
+        `;
+
+        const [
+            classes,
+            batches
+        ] =
+            await Promise.all([
+                fetchJson("/admin/classes"),
+                fetchJson("/admin/batches")
+            ]);
+
+        if (Array.isArray(classes)) {
+
+            classes.forEach(
+                function (classItem) {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        classItem.id;
+
+                    option.textContent =
+                        classItem.name;
+
+                    classSelect.appendChild(
+                        option
+                    );
+                }
+            );
+        }
+
+        if (Array.isArray(batches)) {
+
+            batches.forEach(
+                function (batch) {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        batch.id;
+
+                    option.textContent =
+                        batch.name;
+
+                    batchSelect.appendChild(
+                        option
+                    );
+                }
+            );
+        }
+    }
+
+
+    function setupStudentManagement() {
+
+        const addButton =
+            document.getElementById(
+                "admin-add-student"
+            );
+
+        const modal =
+            document.getElementById(
+                "student-modal"
+            );
+
+        const closeButton =
+            document.getElementById(
+                "close-student-modal"
+            );
+
+        const form =
+            document.getElementById(
+                "admin-student-form"
+            );
+
+        const searchInput =
+            document.getElementById(
+                "admin-student-search"
+            );
+
+        const errorBox =
+            document.getElementById(
+                "student-form-error"
+            );
+
+        if (
+            !addButton ||
+            !modal ||
+            !closeButton ||
+            !form
+        ) {
+            return;
+        }
+
+
+        function showError(message) {
+
+            if (!errorBox) return;
+
+            errorBox.textContent =
+                message;
+
+            errorBox.style.display =
+                "block";
+        }
+
+
+        function clearError() {
+
+            if (!errorBox) return;
+
+            errorBox.textContent =
+                "";
+
+            errorBox.style.display =
+                "none";
+        }
+
+
+        function closeModal() {
+
+            modal.style.display =
+                "none";
+
+            form.reset();
+
+            clearError();
+        }
+
+
+        addButton.addEventListener(
+            "click",
+            async function () {
+
+                modal.style.display =
+                    "flex";
+
+                clearError();
+
+                try {
+
+                    await loadStudentFormOptions();
+
+                } catch (error) {
+
+                    console.error(
+                        "Student form options error:",
+                        error
+                    );
+
+                    showError(
+                        "Unable to load classes and batches."
+                    );
+                }
+            }
+        );
+
+
+        closeButton.addEventListener(
+            "click",
+            closeModal
+        );
+
+
+        modal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target ===
+                    modal
+                ) {
+
+                    closeModal();
+                }
+            }
+        );
+
+
+        form.addEventListener(
+            "submit",
+            async function (event) {
+
+                event.preventDefault();
+
+                clearError();
+
+
+                const payload = {
+
+                    student_id:
+                        document.getElementById(
+                            "student-id"
+                        ).value.trim(),
+
+                    name:
+                        document.getElementById(
+                            "student-name"
+                        ).value.trim(),
+
+                    email:
+                        document.getElementById(
+                            "student-email"
+                        ).value.trim(),
+
+                    password:
+                        document.getElementById(
+                            "student-password"
+                        ).value,
+
+                    class_id:
+                        Number(
+                            document.getElementById(
+                                "student-class"
+                            ).value
+                        ),
+
+                    batch_id:
+                        Number(
+                            document.getElementById(
+                                "student-batch"
+                            ).value
+                        )
+                };
+
+
+                if (
+                    !payload.student_id ||
+                    !payload.name ||
+                    !payload.email ||
+                    !payload.password
+                ) {
+
+                    showError(
+                        "Please fill in all required fields."
+                    );
+
+                    return;
+                }
+
+
+                if (
+                    !payload.class_id ||
+                    !payload.batch_id
+                ) {
+
+                    showError(
+                        "Please select both a class and a batch."
+                    );
+
+                    return;
+                }
+
+
+                try {
+
+                    await fetchJson(
+                        "/admin/students",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+
+                    closeModal();
+
+                    alert(
+                        "Student created successfully."
+                    );
+
+                    await loadAdminStudents();
+
+                } catch (error) {
+
+                    console.error(
+                        "Create student error:",
+                        error
+                    );
+
+                    showError(
+                        error.message
+                    );
+                }
+            }
+        );
+
+
+        if (searchInput) {
+
+            searchInput.addEventListener(
+                "input",
+                function () {
+
+                    const query =
+                        this.value
+                            .trim()
+                            .toLowerCase();
+
+
+                    const filtered =
+                        (
+                            window.adminStudents ||
+                            []
+                        )
+                        .filter(
+                            function (student) {
+
+                                return [
+                                    student.student_id,
+                                    student.name,
+                                    student.email,
+                                    student.class_name,
+                                    student.batch_name
+                                ]
+                                .join(" ")
+                                .toLowerCase()
+                                .includes(query);
+                            }
+                        );
+
+
+                    renderAdminStudents(
+                        filtered
+                    );
+                }
+            );
+        }
+
+
+        document.addEventListener(
+            "click",
+            async function (event) {
+
+                const button =
+                    event.target.closest(
+                        "[data-student-status]"
+                    );
+
+                if (!button) return;
+
+
+                const studentId =
+                    button.dataset.studentStatus;
+
+
+                const currentlyActive =
+                    button.dataset.active ===
+                    "true";
+
+
+                const action =
+                    currentlyActive
+                        ? "deactivate"
+                        : "reactivate";
+
+
+                if (
+                    !confirm(
+                        `Are you sure you want to ${action} ${studentId}?`
+                    )
+                ) {
+                    return;
+                }
+
+
+                try {
+
+                    await fetchJson(
+                        `/admin/students/${encodeURIComponent(
+                            studentId
+                        )}/status`,
+                        {
+                            method: "PATCH",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    is_active:
+                                        !currentlyActive
+                                })
+                        }
+                    );
+
+
+                    await loadAdminStudents();
+
+                } catch (error) {
+
+                    console.error(
+                        "Student status update error:",
+                        error
+                    );
+
+                    alert(
+                        error.message
+                    );
+                }
+            }
+        );
     }
 
 
@@ -631,11 +954,7 @@
                 "admin-batches-table"
             );
 
-
-        if (!table) {
-            return;
-        }
-
+        if (!table) return;
 
         try {
 
@@ -643,7 +962,6 @@
                 await fetchJson(
                     "/admin/batches"
                 );
-
 
             if (
                 !Array.isArray(batches) ||
@@ -659,9 +977,7 @@
                 `;
 
                 return;
-
             }
-
 
             table.innerHTML =
                 batches.map(
@@ -692,10 +1008,8 @@
 
                             </tr>
                         `;
-
                     }
                 ).join("");
-
 
         } catch (error) {
 
@@ -704,7 +1018,6 @@
                 error
             );
 
-
             table.innerHTML = `
                 <tr>
                     <td colspan="3">
@@ -712,9 +1025,7 @@
                     </td>
                 </tr>
             `;
-
         }
-
     }
 
 
@@ -729,11 +1040,7 @@
                 "admin-classes-table"
             );
 
-
-        if (!table) {
-            return;
-        }
-
+        if (!table) return;
 
         try {
 
@@ -741,7 +1048,6 @@
                 await fetchJson(
                     "/admin/classes"
                 );
-
 
             if (
                 !Array.isArray(classes) ||
@@ -757,9 +1063,7 @@
                 `;
 
                 return;
-
             }
-
 
             table.innerHTML =
                 classes.map(
@@ -809,10 +1113,8 @@
 
                             </tr>
                         `;
-
                     }
                 ).join("");
-
 
         } catch (error) {
 
@@ -821,7 +1123,6 @@
                 error
             );
 
-
             table.innerHTML = `
                 <tr>
                     <td colspan="6">
@@ -829,9 +1130,7 @@
                     </td>
                 </tr>
             `;
-
         }
-
     }
 
 
@@ -846,11 +1145,7 @@
                 "admin-subjects-table"
             );
 
-
-        if (!table) {
-            return;
-        }
-
+        if (!table) return;
 
         try {
 
@@ -858,7 +1153,6 @@
                 await fetchJson(
                     "/admin/subjects"
                 );
-
 
             if (
                 !Array.isArray(subjects) ||
@@ -874,9 +1168,7 @@
                 `;
 
                 return;
-
             }
-
 
             table.innerHTML =
                 subjects.map(
@@ -901,10 +1193,8 @@
 
                             </tr>
                         `;
-
                     }
                 ).join("");
-
 
         } catch (error) {
 
@@ -913,7 +1203,6 @@
                 error
             );
 
-
             table.innerHTML = `
                 <tr>
                     <td colspan="2">
@@ -921,9 +1210,7 @@
                     </td>
                 </tr>
             `;
-
         }
-
     }
 
 
@@ -938,11 +1225,7 @@
                 "admin-timetable-table"
             );
 
-
-        if (!table) {
-            return;
-        }
-
+        if (!table) return;
 
         try {
 
@@ -950,7 +1233,6 @@
                 await fetchJson(
                     "/admin/timetable"
                 );
-
 
             if (
                 !Array.isArray(timetable) ||
@@ -966,9 +1248,7 @@
                 `;
 
                 return;
-
             }
-
 
             table.innerHTML =
                 timetable.map(
@@ -1022,10 +1302,8 @@
 
                             </tr>
                         `;
-
                     }
                 ).join("");
-
 
         } catch (error) {
 
@@ -1034,7 +1312,6 @@
                 error
             );
 
-
             table.innerHTML = `
                 <tr>
                     <td colspan="6">
@@ -1042,9 +1319,7 @@
                     </td>
                 </tr>
             `;
-
         }
-
     }
 
 
@@ -1059,11 +1334,7 @@
                 "admin-attendance-table"
             );
 
-
-        if (!table) {
-            return;
-        }
-
+        if (!table) return;
 
         try {
 
@@ -1071,7 +1342,6 @@
                 await fetchJson(
                     "/admin/attendance"
                 );
-
 
             if (
                 !Array.isArray(sessions) ||
@@ -1087,9 +1357,7 @@
                 `;
 
                 return;
-
             }
-
 
             table.innerHTML =
                 sessions.map(
@@ -1154,10 +1422,8 @@
 
                             </tr>
                         `;
-
                     }
                 ).join("");
-
 
         } catch (error) {
 
@@ -1166,7 +1432,6 @@
                 error
             );
 
-
             table.innerHTML = `
                 <tr>
                     <td colspan="7">
@@ -1174,9 +1439,7 @@
                     </td>
                 </tr>
             `;
-
         }
-
     }
 
 
@@ -1191,24 +1454,20 @@
                 "admin-reports-table"
             );
 
-
         const overallAttendance =
             document.getElementById(
                 "admin-overall-attendance"
             );
-
 
         const activeStudents =
             document.getElementById(
                 "admin-active-students"
             );
 
-
         const totalSessions =
             document.getElementById(
                 "admin-total-sessions"
             );
-
 
         if (
             !table &&
@@ -1216,11 +1475,8 @@
             !activeStudents &&
             !totalSessions
         ) {
-
             return;
-
         }
-
 
         try {
 
@@ -1232,43 +1488,37 @@
                     fetchJson(
                         "/admin/reports"
                     ),
+
                     fetchJson(
                         "/admin/overview"
                     )
                 ]);
 
-
-            // ========================================
-            // REPORT SUMMARY
-            // ========================================
-
             let totalPossible = 0;
-
             let totalPresent = 0;
 
+            if (
+                Array.isArray(reports)
+            ) {
 
-            reports.forEach(
-                function (report) {
+                reports.forEach(
+                    function (report) {
 
-                    totalPossible +=
-                        (
+                        totalPossible +=
                             Number(
-                                report.students
+                                report.students || 0
                             ) *
                             Number(
-                                report.sessions
-                            )
-                        );
+                                report.sessions || 0
+                            );
 
-
-                    totalPresent +=
-                        Number(
-                            report.present_records
-                        );
-
-                }
-            );
-
+                        totalPresent +=
+                            Number(
+                                report.present_records || 0
+                            );
+                    }
+                );
+            }
 
             const percentage =
                 totalPossible > 0
@@ -1278,39 +1528,25 @@
                     ) * 100
                     : 0;
 
-
             if (overallAttendance) {
 
                 overallAttendance.textContent =
                     `${percentage.toFixed(1)}%`;
-
             }
-
 
             if (activeStudents) {
 
                 activeStudents.textContent =
-                    overview.total_students;
-
+                    overview.total_students ?? 0;
             }
-
 
             if (totalSessions) {
 
                 totalSessions.textContent =
-                    overview.total_attendance_sessions;
-
+                    overview.total_attendance_sessions ?? 0;
             }
 
-
-            // ========================================
-            // CLASS REPORT TABLE
-            // ========================================
-
-            if (!table) {
-                return;
-            }
-
+            if (!table) return;
 
             if (
                 !Array.isArray(reports) ||
@@ -1326,9 +1562,7 @@
                 `;
 
                 return;
-
             }
-
 
             table.innerHTML =
                 reports.map(
@@ -1383,10 +1617,8 @@
 
                             </tr>
                         `;
-
                     }
                 ).join("");
-
 
         } catch (error) {
 
@@ -1394,7 +1626,6 @@
                 "Admin reports error:",
                 error
             );
-
 
             if (table) {
 
@@ -1405,11 +1636,8 @@
                         </td>
                     </tr>
                 `;
-
             }
-
         }
-
     }
 
 
@@ -1418,11 +1646,8 @@
     // ========================================
 
     if (!requireAdmin()) {
-
         return;
-
     }
-
 
     setupLogout();
 
@@ -1433,6 +1658,8 @@
     loadAdminTeachers();
 
     loadAdminStudents();
+
+    setupStudentManagement();
 
     loadAdminBatches();
 

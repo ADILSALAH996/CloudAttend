@@ -6,6 +6,91 @@
     <title>Students | CloudAttend</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/admin.css">
+    <style>
+        .student-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.55);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .student-modal-card {
+            width: min(520px, 100%);
+            max-height: 90vh;
+            overflow-y: auto;
+            background: #fff;
+            color: #111;
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        }
+
+        .student-modal-card h2 {
+            margin: 0 0 6px;
+        }
+
+        .student-modal-subtitle {
+            margin: 0 0 20px;
+            color: #666;
+        }
+
+        .student-form {
+            display: grid;
+            gap: 14px;
+        }
+
+        .student-form-group {
+            display: grid;
+            gap: 7px;
+        }
+
+        .student-form-group label {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .student-form-group input,
+        .student-form-group select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 11px 12px;
+            border: 1px solid #d7d7d7;
+            border-radius: 8px;
+            font: inherit;
+        }
+
+        .student-form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .student-form-error {
+            display: none;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #fff1f1;
+            color: #b42318;
+            font-size: 14px;
+        }
+
+        .student-action-btn {
+            padding: 7px 10px;
+            border: 1px solid #d7d7d7;
+            border-radius: 7px;
+            background: transparent;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .student-action-btn:hover {
+            opacity: 0.8;
+        }
+    </style>
 </head>
 <body class="admin-body">
 <header class="admin-header">
@@ -33,67 +118,105 @@
             <a href="admin-reports.html">Reports</a>
         </nav>
     </aside>
+
     <main class="admin-main">
         <p class="admin-eyebrow-main">ADMIN</p>
         <h1>Students</h1>
         <p class="admin-main-subtitle">Manage student identities, classes and enrollment.</p>
-        
-<section class="admin-section">
-  <div class="admin-toolbar">
-    <input class="admin-search" type="search" placeholder="Search students">
-    <button class="admin-small-btn" type="button">+ Add Student</button>
-  </div>
- <div class="admin-table-wrap">
 
-    <table class="admin-table">
+        <section class="admin-section">
+            <div class="admin-toolbar">
+                <input
+                    id="admin-student-search"
+                    class="admin-search"
+                    type="search"
+                    placeholder="Search students"
+                >
 
-        <thead>
+                <button
+                    id="admin-add-student"
+                    class="admin-small-btn"
+                    type="button"
+                >
+                    + Add Student
+                </button>
+            </div>
 
-            <tr>
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Class</th>
+                            <th>Batch</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
 
-                <th>
-                    Student ID
-                </th>
-
-                <th>
-                    Name
-                </th>
-
-                <th>
-                    Email
-                </th>
-
-                <th>
-                    Class
-                </th>
-
-                <th>
-                    Status
-                </th>
-
-            </tr>
-
-        </thead>
-
-
-        <tbody id="admin-students-table">
-
-            <tr>
-
-                <td colspan="5">
-                    Loading students...
-                </td>
-
-            </tr>
-
-        </tbody>
-
-    </table>
-
-</div>
-</section>
+                    <tbody id="admin-students-table">
+                        <tr>
+                            <td colspan="7">Loading students...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </main>
 </div>
+
+<div id="student-modal" class="student-modal">
+    <div class="student-modal-card" role="dialog" aria-modal="true" aria-labelledby="student-modal-title">
+        <h2 id="student-modal-title">Add Student</h2>
+        <p class="student-modal-subtitle">Create a student account and assign the class and batch.</p>
+
+        <form id="admin-student-form" class="student-form">
+            <div class="student-form-group">
+                <label for="student-id">Student ID</label>
+                <input id="student-id" type="text" placeholder="STU003" required>
+            </div>
+
+            <div class="student-form-group">
+                <label for="student-name">Name</label>
+                <input id="student-name" type="text" placeholder="Student name" required>
+            </div>
+
+            <div class="student-form-group">
+                <label for="student-email">Email</label>
+                <input id="student-email" type="email" placeholder="student@example.com" required>
+            </div>
+
+            <div class="student-form-group">
+                <label for="student-password">Password</label>
+                <input id="student-password" type="password" placeholder="Temporary password" minlength="6" required>
+            </div>
+
+            <div class="student-form-group">
+                <label for="student-class">Class / Year</label>
+                <select id="student-class" required>
+                    <option value="">Select class</option>
+                </select>
+            </div>
+
+            <div class="student-form-group">
+                <label for="student-batch">Batch / Section</label>
+                <select id="student-batch" required>
+                    <option value="">Select batch</option>
+                </select>
+            </div>
+
+            <div id="student-form-error" class="student-form-error"></div>
+
+            <div class="student-form-actions">
+                <button class="admin-small-btn" type="submit">Create Student</button>
+                <button id="close-student-modal" class="student-action-btn" type="button">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="../assets/js/admin.js"></script>
 </body>
 </html>

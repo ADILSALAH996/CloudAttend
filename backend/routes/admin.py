@@ -1,8 +1,10 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from pwdlib import PasswordHash
 
 from database import SessionLocal
 from models import (
@@ -28,6 +30,8 @@ router = APIRouter(
     tags=["Admin"]
 )
 
+password_hash = PasswordHash.recommended()
+
 
 # ========================================
 # DATABASE DEPENDENCY
@@ -44,6 +48,21 @@ def get_db():
     finally:
 
         db.close()
+
+
+class AdminStudentCreate(BaseModel):
+
+    student_id: str
+    name: str
+    email: str
+    password: str
+    class_id: int
+    batch_id: int
+
+
+class AdminStudentStatusUpdate(BaseModel):
+
+    is_active: bool
 
 
 # ========================================
@@ -195,11 +214,16 @@ def get_admin_students(
     students = (
         db.query(
             Student,
-            Class
+            Class,
+            Batch
         )
         .join(
             Class,
             Student.class_id == Class.id
+        )
+        .outerjoin(
+            Batch,
+            Student.batch_id == Batch.id
         )
         .order_by(
             Student.name
@@ -211,11 +235,12 @@ def get_admin_students(
     result = []
 
 
-    for student, class_item in students:
+    for student, class_item, batch_item in students:
 
         result.append({
 
-            "id": student.id,
+            "id":
+                student.id,
 
             "student_id":
                 student.student_id,
@@ -230,12 +255,212 @@ def get_admin_students(
                 student.class_id,
 
             "class_name":
-                class_item.name
+                class_item.name,
+
+            "batch_id":
+                student.batch_id,
+
+            "batch_name":
+                batch_item.name
+                if batch_item
+                else None,
+
+            "is_active":
+                student.is_active
 
         })
 
 
-    return result 
+    return result
+
+
+# ========================================
+# M9.9.1 - CREATE STUDENT
+# ========================================
+
+@router.post("/students", status_code=201)
+def create_admin_student(
+    student_data: AdminStudentCreate,
+    db: Session = Depends(get_db)
+):
+
+    existing_student = (
+        db.query(Student)
+        .filter(
+            Student.student_id ==
+            student_data.student_id
+        )
+        .first()
+    )
+
+    if existing_student:
+
+        raise HTTPException(
+            status_code=409,
+            detail="Student ID already exists"
+        )
+
+
+    existing_email = (
+        db.query(Student)
+        .filter(
+            Student.email ==
+            student_data.email
+        )
+        .first()
+    )
+
+    if existing_email:
+
+        raise HTTPException(
+            status_code=409,
+            detail="Student email already exists"
+        )
+
+
+    class_item = (
+        db.query(Class)
+        .filter(
+            Class.id ==
+            student_data.class_id
+        )
+        .first()
+    )
+
+    if not class_item:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Class not found"
+        )
+
+
+    batch = (
+        db.query(Batch)
+        .filter(
+            Batch.id ==
+            student_data.batch_id
+        )
+        .first()
+    )
+
+    if not batch:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Batch not found"
+        )
+
+
+    new_student = Student(
+
+        student_id =
+            student_data.student_id,
+
+        name =
+            student_data.name,
+
+        email =
+            student_data.email,
+
+        password =
+            password_hash.hash(
+                student_data.password
+            ),
+
+        class_id =
+            student_data.class_id,
+
+        batch_id =
+            student_data.batch_id,
+
+        is_active =
+            True
+    )
+
+
+    db.add(new_student)
+    db.commit()
+    db.refresh(new_student)
+
+
+    return {
+
+        "message":
+            "Student created successfully",
+
+        "id":
+            new_student.id,
+
+        "student_id":
+            new_student.student_id,
+
+        "name":
+            new_student.name,
+
+        "email":
+            new_student.email,
+
+        "class_id":
+            new_student.class_id,
+
+        "batch_id":
+            new_student.batch_id,
+
+        "is_active":
+            new_student.is_active
+
+    }
+
+
+# ========================================
+# M9.9.2 - UPDATE STUDENT STATUS
+# ========================================
+
+@router.patch("/students/{student_id}/status")
+def update_admin_student_status(
+    student_id: str,
+    status_data: AdminStudentStatusUpdate,
+    db: Session = Depends(get_db)
+):
+
+    student = (
+        db.query(Student)
+        .filter(
+            Student.student_id ==
+            student_id
+        )
+        .first()
+    )
+
+
+    if not student:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found"
+        )
+
+
+    student.is_active = status_data.is_active
+
+
+    db.commit()
+    db.refresh(student)
+
+
+    return {
+
+        "message":
+            "Student status updated",
+
+        "student_id":
+            student.student_id,
+
+        "is_active":
+            student.is_active
+
+    }
 
 
 # ========================================

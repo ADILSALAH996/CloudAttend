@@ -274,3 +274,50 @@ WebSockets will not be introduced until there is a clear requirement for them.
 ### Status
 
 M7 — Timetable & Live Class System Completed
+
+
+---
+
+## M9.9 — Admin Student Management
+
+### Completed
+
+- Added `batch_id` to the `students` table.
+- Added `is_active` student account status.
+- Backfilled the existing demo student with a batch assignment.
+- Updated the Student SQLAlchemy model to include `batch_id` and `is_active`.
+- Updated student login to return `batch_id`.
+- Added Admin student creation API:
+  - `POST /admin/students`
+- Added Admin student status API:
+  - `PATCH /admin/students/{student_id}/status`
+- Added duplicate Student ID validation.
+- Added duplicate student email validation.
+- Added Class validation when creating a student.
+- Added Batch validation when creating a student.
+- Added password hashing for newly created students.
+- Added Admin Students UI for:
+  - Adding students
+  - Searching students
+  - Viewing class/year
+  - Viewing batch/section
+  - Viewing active/inactive status
+  - Deactivating students
+  - Reactivating students
+- Changed student account removal behavior to deactivation instead of physical deletion so attendance history is preserved.
+- Updated student login to block inactive accounts.
+
+### Academic Structure Correction
+
+The database structure was corrected to reflect the actual academic hierarchy:
+
+```text
+ICIS
+↓
+BCA Department
+↓
+Class / Year
+↓
+Batch / Section
+↓
+Students
