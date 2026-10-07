@@ -178,9 +178,9 @@
 
 
                     <button
+                        id="admin-add-teacher"
                         type="button"
                         class="admin-action-button"
-                        disabled
                     >
                         + Add Teacher
                     </button>
@@ -220,6 +220,10 @@
                                     Status
                                 </th>
 
+                                <th>
+                                    Action
+                                </th>
+
                             </tr>
 
                         </thead>
@@ -231,7 +235,7 @@
 
                             <tr>
 
-                                <td colspan="5">
+                                <td colspan="6">
                                     Loading teachers...
                                 </td>
 
@@ -244,6 +248,262 @@
                 </div>
 
             </section>
+
+
+            <!-- ========================================
+                 ADD TEACHER MODAL
+            ======================================== -->
+
+            <div
+                id="teacher-modal"
+                style="
+                    display:none;
+                    position:fixed;
+                    inset:0;
+                    background:rgba(0,0,0,0.55);
+                    z-index:1000;
+                    align-items:center;
+                    justify-content:center;
+                "
+            >
+
+                <div
+                    style="
+                        background:white;
+                        width:min(500px,90%);
+                        padding:24px;
+                        border-radius:12px;
+                        color:#111;
+                    "
+                >
+
+                    <h2>Add Teacher</h2>
+
+                    <form id="admin-teacher-form">
+
+                        <label for="teacher-name">Teacher Name</label>
+                        <input
+                            id="teacher-name"
+                            type="text"
+                            placeholder="Teacher name"
+                            required
+                        >
+
+                        <label for="teacher-email">Email</label>
+                        <input
+                            id="teacher-email"
+                            type="email"
+                            placeholder="Email"
+                            required
+                        >
+
+                        <label for="teacher-password">Password</label>
+                        <input
+                            id="teacher-password"
+                            type="password"
+                            placeholder="Password"
+                            required
+                        >
+
+                        <label for="teacher-faculty">Faculty</label>
+                        <select
+                            id="teacher-faculty"
+                            required
+                        >
+                            <option value="">
+                                Select Faculty
+                            </option>
+                        </select>
+
+                        <p
+                            id="teacher-form-error"
+                            style="
+                                display:none;
+                                color:#b91c1c;
+                                margin-top:10px;
+                            "
+                        ></p>
+
+                        <div style="margin-top:16px; display:flex; gap:10px;">
+
+                            <button
+                                class="admin-action-button"
+                                type="submit"
+                            >
+                                Create Teacher
+                            </button>
+
+                            <button
+                                id="close-teacher-modal"
+                                class="admin-action-button"
+                                type="button"
+                            >
+                                Cancel
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+
+
+<!-- ========================================
+     FACULTY MANAGEMENT
+======================================== -->
+
+<section class="admin-section faculty-management-section">
+
+    <div class="admin-section-head">
+
+        <div>
+
+            <h2>
+                Faculty
+            </h2>
+
+            <p>
+                Manage faculty records used for teacher assignments.
+            </p>
+
+        </div>
+
+
+        <button
+            id="admin-add-faculty"
+            type="button"
+            class="admin-action-button"
+        >
+            + Add Faculty
+        </button>
+
+    </div>
+
+
+    <div class="admin-table-wrapper">
+
+        <table class="admin-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>ID</th>
+
+                    <th>Faculty</th>
+
+                    <th>Email</th>
+
+                    <th>Action</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="admin-faculties-table">
+
+                <tr>
+
+                    <td colspan="4">
+                        Loading faculties...
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<!-- ========================================
+     ADD FACULTY MODAL
+======================================== -->
+
+<div
+    id="faculty-modal"
+    class="admin-modal-overlay"
+>
+
+    <div class="admin-modal-card">
+
+        <h2>
+            Add Faculty
+        </h2>
+
+        <p class="admin-modal-subtitle">
+            Create a faculty that can be assigned to teachers.
+        </p>
+
+
+        <form
+            id="admin-faculty-form"
+            class="admin-modal-form"
+        >
+
+            <label for="faculty-name">
+                Faculty Name
+            </label>
+
+            <input
+                id="faculty-name"
+                type="text"
+                placeholder="Faculty name"
+                required
+            >
+
+
+            <label for="faculty-email">
+                Email
+                <span>(optional)</span>
+            </label>
+
+            <input
+                id="faculty-email"
+                type="email"
+                placeholder="faculty@example.com"
+            >
+
+
+            <p
+                id="faculty-form-error"
+                class="admin-form-error"
+            ></p>
+
+
+            <div class="admin-modal-actions">
+
+                <button
+                    type="submit"
+                    class="admin-action-button"
+                >
+                    Create Faculty
+                </button>
+
+
+                <button
+                    id="close-faculty-modal"
+                    type="button"
+                    class="admin-secondary-button"
+                >
+                    Cancel
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
 
 
             <!-- ========================================

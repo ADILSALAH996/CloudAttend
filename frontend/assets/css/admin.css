@@ -433,3 +433,319 @@ a { color: inherit; }
     opacity: 0.7;
 
 }
+
+/* ========================================
+   ADD TEACHER MODAL
+======================================== */
+
+#teacher-modal {
+    box-sizing: border-box;
+}
+
+#teacher-modal > div {
+    box-sizing: border-box;
+    width: min(520px, 92%);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 30px;
+    border-radius: 16px;
+    background: #ffffff;
+    color: #111827;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.20);
+}
+
+#teacher-modal h2 {
+    margin: 0 0 6px;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+#admin-teacher-form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+#admin-teacher-form label {
+    display: block;
+    margin-top: 16px;
+    margin-bottom: 7px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+#admin-teacher-form label:first-of-type {
+    margin-top: 12px;
+}
+
+#admin-teacher-form input,
+#admin-teacher-form select {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 10px 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #111827;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+#admin-teacher-form input:focus,
+#admin-teacher-form select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+
+#admin-teacher-form input::placeholder {
+    color: #9ca3af;
+}
+
+#teacher-form-error {
+    display: none;
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 14px;
+}
+
+/* Form buttons */
+#admin-teacher-form > div {
+    display: flex !important;
+    gap: 10px;
+    margin-top: 22px !important;
+}
+
+#admin-teacher-form button {
+    min-height: 42px;
+    padding: 9px 18px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+#admin-teacher-form button[type="submit"] {
+    background: #2563eb;
+    border: 1px solid #2563eb;
+    color: #ffffff;
+}
+
+#admin-teacher-form button[type="submit"]:hover {
+    background: #1d4ed8;
+}
+
+#close-teacher-modal {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    color: #374151;
+}
+
+#close-teacher-modal:hover {
+    background: #f3f4f6;
+}
+
+
+/* ========================================
+   TEACHER TABLE ACTION BUTTON
+======================================== */
+
+.teacher-action-btn {
+    min-height: 36px;
+    padding: 7px 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.teacher-action-btn:hover {
+    background: #f3f4f6;
+}
+
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 600px) {
+
+    #teacher-modal > div {
+        width: 94%;
+        padding: 22px;
+        border-radius: 14px;
+    }
+
+    #teacher-modal h2 {
+        font-size: 23px;
+    }
+
+    #admin-teacher-form > div {
+        flex-direction: column;
+    }
+
+    #admin-teacher-form button {
+        width: 100%;
+    }
+}
+
+
+/* ========================================
+   FACULTY MANAGEMENT
+======================================== */
+
+.admin-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.58);
+    box-sizing: border-box;
+}
+
+.admin-modal-card {
+    width: min(520px, 94%);
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 30px;
+    border-radius: 16px;
+    background: #ffffff;
+    color: #111827;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.20);
+}
+
+.admin-modal-card h2 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.admin-modal-subtitle {
+    margin: 7px 0 20px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.admin-modal-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-modal-form label {
+    margin: 14px 0 7px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.admin-modal-form label span {
+    color: #9ca3af;
+    font-weight: 400;
+}
+
+.admin-modal-form input {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 10px 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #111827;
+    font: inherit;
+    outline: none;
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+.admin-modal-form input:focus {
+    border-color: #2563eb;
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, .10);
+}
+
+.admin-form-error {
+    display: none;
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 14px;
+}
+
+.admin-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.admin-secondary-button {
+    min-height: 42px;
+    padding: 9px 18px;
+    border: 1px solid #d1d5db;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.admin-secondary-button:hover {
+    background: #f3f4f6;
+}
+
+.faculty-delete-button {
+    min-height: 36px;
+    padding: 7px 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.faculty-delete-button:hover {
+    background: #f3f4f6;
+}
+
+@media (max-width: 600px) {
+
+    .admin-modal-card {
+        width: 95%;
+        padding: 22px;
+    }
+
+    .admin-modal-actions {
+        flex-direction: column;
+    }
+
+    .admin-modal-actions button {
+        width: 100%;
+    }
+}

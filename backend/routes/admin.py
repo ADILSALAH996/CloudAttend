@@ -65,6 +65,25 @@ class AdminStudentStatusUpdate(BaseModel):
     is_active: bool
 
 
+class AdminTeacherCreate(BaseModel):
+
+    name: str
+    email: str
+    password: str
+    faculty_id: int
+
+
+class AdminTeacherStatusUpdate(BaseModel):
+
+    is_active: bool
+
+
+class AdminFacultyCreate(BaseModel):
+
+    name: str
+    email: str | None = None
+
+
 # ========================================
 # ADMIN OVERVIEW
 # ========================================
@@ -164,7 +183,8 @@ def get_admin_teachers(
             t.name,
             t.email,
             t.faculty_id,
-            f.name AS faculty_name
+            f.name AS faculty_name,
+            t.is_active
         FROM teachers t
         LEFT JOIN faculty f
             ON t.faculty_id = f.id
@@ -194,12 +214,284 @@ def get_admin_teachers(
                 row["faculty_id"],
 
             "faculty":
-                row["faculty_name"]
+                row["faculty_name"],
+
+            "is_active":
+                row["is_active"]
 
         })
 
 
     return teachers
+
+
+# ========================================
+# M9.7.1 - CREATE TEACHER
+# ========================================
+
+@router.post("/teachers", status_code=201)
+def create_admin_teacher(
+    teacher_data: AdminTeacherCreate,
+    db: Session = Depends(get_db)
+):
+
+    existing_teacher = (
+        db.query(Teacher)
+        .filter(Teacher.email == teacher_data.email)
+        .first()
+    )
+
+    if existing_teacher:
+        raise HTTPException(
+            status_code=409,
+            detail="Teacher email already exists"
+        )
+
+    faculty = (
+        db.query(Faculty)
+        .filter(Faculty.id == teacher_data.faculty_id)
+        .first()
+    )
+
+    if not faculty:
+        raise HTTPException(
+            status_code=404,
+            detail="Faculty not found"
+        )
+
+    new_teacher = Teacher(
+        name=teacher_data.name,
+        email=teacher_data.email,
+        password=password_hash.hash(teacher_data.password),
+        faculty_id=teacher_data.faculty_id,
+        is_active=True
+    )
+
+    db.add(new_teacher)
+    db.commit()
+    db.refresh(new_teacher)
+
+    return {
+        "message": "Teacher created successfully",
+        "id": new_teacher.id,
+        "name": new_teacher.name,
+        "email": new_teacher.email,
+        "faculty_id": new_teacher.faculty_id,
+        "is_active": new_teacher.is_active
+    }
+
+
+# ========================================
+# M9.7.2 - UPDATE TEACHER STATUS
+# ========================================
+
+@router.patch("/teachers/{teacher_id}/status")
+def update_admin_teacher_status(
+    teacher_id: int,
+    status_data: AdminTeacherStatusUpdate,
+    db: Session = Depends(get_db)
+):
+
+    teacher = (
+        db.query(Teacher)
+        .filter(Teacher.id == teacher_id)
+        .first()
+    )
+
+    if not teacher:
+        raise HTTPException(
+            status_code=404,
+            detail="Teacher not found"
+        )
+
+    teacher.is_active = status_data.is_active
+
+    db.commit()
+    db.refresh(teacher)
+
+    return {
+        "message": "Teacher status updated",
+        "teacher_id": teacher.id,
+        "is_active": teacher.is_active
+    }
+
+
+# ========================================
+# M9.7.3 - ADMIN FACULTIES
+# ========================================
+
+@router.get("/faculties")
+def get_admin_faculties(
+    db: Session = Depends(get_db)
+):
+
+    faculties = (
+        db.query(Faculty)
+        .order_by(Faculty.name)
+        .all()
+    )
+
+    return [
+
+        {
+            "id": faculty.id,
+            "name": faculty.name,
+            "email": faculty.email
+        }
+
+        for faculty in faculties
+
+    ]
+
+
+# ========================================
+# M9.7.4 - CREATE FACULTY
+# ========================================
+
+@router.post("/faculties", status_code=201)
+def create_admin_faculty(
+    faculty_data: AdminFacultyCreate,
+    db: Session = Depends(get_db)
+):
+
+    name = faculty_data.name.strip()
+
+
+    if not name:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Faculty name is required"
+        )
+
+
+    existing = (
+        db.query(Faculty)
+        .filter(
+            Faculty.name.ilike(name)
+        )
+        .first()
+    )
+
+
+    if existing:
+
+        raise HTTPException(
+            status_code=409,
+            detail="Faculty already exists"
+        )
+
+
+    new_faculty = Faculty(
+
+        name=name,
+
+        email=(
+            faculty_data.email.strip()
+            if faculty_data.email
+            else None
+        )
+
+    )
+
+
+    db.add(new_faculty)
+
+    db.commit()
+
+    db.refresh(new_faculty)
+
+
+    return {
+
+        "message":
+            "Faculty created successfully",
+
+        "id":
+            new_faculty.id,
+
+        "name":
+            new_faculty.name,
+
+        "email":
+            new_faculty.email
+
+    }
+
+
+# ========================================
+# M9.7.5 - DELETE FACULTY
+# ========================================
+
+@router.delete("/faculties/{faculty_id}")
+def delete_admin_faculty(
+    faculty_id: int,
+    db: Session = Depends(get_db)
+):
+
+    faculty = (
+        db.query(Faculty)
+        .filter(
+            Faculty.id == faculty_id
+        )
+        .first()
+    )
+
+
+    if not faculty:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Faculty not found"
+        )
+
+
+    teacher_count = (
+        db.query(Teacher)
+        .filter(
+            Teacher.faculty_id == faculty_id
+        )
+        .count()
+    )
+
+
+    schedule_count = (
+        db.query(ClassSchedule)
+        .filter(
+            ClassSchedule.faculty_id == faculty_id
+        )
+        .count()
+    )
+
+
+    if (
+        teacher_count > 0
+        or schedule_count > 0
+    ):
+
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Faculty cannot be deleted because it is "
+                "still assigned to teachers or timetable schedules."
+            )
+        )
+
+
+    db.delete(faculty)
+
+    db.commit()
+
+
+    return {
+
+        "message":
+            "Faculty deleted successfully",
+
+        "faculty_id":
+            faculty_id
+
+    }
 
 
 # ========================================

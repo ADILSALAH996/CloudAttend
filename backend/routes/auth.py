@@ -70,7 +70,6 @@ def teacher_login(
         .first()
     )
 
-
     if not teacher:
 
         raise HTTPException(
@@ -78,6 +77,12 @@ def teacher_login(
             detail="Invalid email or password"
         )
 
+    if not teacher.is_active:
+
+        raise HTTPException(
+            status_code=403,
+            detail="Teacher account is inactive. Contact the administrator."
+        )
 
     if not password_hash.verify(
         login.password,
@@ -89,24 +94,12 @@ def teacher_login(
             detail="Invalid email or password"
         )
 
-
     return {
-
-        "message":
-            "Teacher login successful",
-
-        "teacher_id":
-            teacher.id,
-
-        "name":
-            teacher.name,
-
-        "email":
-            teacher.email,
-
-        "faculty_id":
-            teacher.faculty_id
-
+        "message": "Teacher login successful",
+        "teacher_id": teacher.id,
+        "name": teacher.name,
+        "email": teacher.email,
+        "faculty_id": teacher.faculty_id
     }
 
 
@@ -123,12 +116,10 @@ def student_login(
     student = (
         db.query(Student)
         .filter(
-            Student.student_id ==
-            login.student_id
+            Student.student_id == login.student_id
         )
         .first()
     )
-
 
     if not student:
 
@@ -137,22 +128,12 @@ def student_login(
             detail="Invalid student ID or password"
         )
 
-
-    # ====================================
-    # CHECK STUDENT ACCOUNT STATUS
-    # ====================================
-
     if not student.is_active:
 
         raise HTTPException(
             status_code=403,
             detail="Student account is inactive. Contact the administrator."
         )
-
-
-    # ====================================
-    # VERIFY PASSWORD
-    # ====================================
 
     if not password_hash.verify(
         login.password,
@@ -164,29 +145,11 @@ def student_login(
             detail="Invalid student ID or password"
         )
 
-
-    # ====================================
-    # LOGIN RESPONSE
-    # ====================================
-
     return {
-
-        "message":
-            "Student login successful",
-
-        "student_id":
-            student.student_id,
-
-        "name":
-            student.name,
-
-        "email":
-            student.email,
-
-        "class_id":
-            student.class_id,
-
-        "batch_id":
-            student.batch_id
-
+        "message": "Student login successful",
+        "student_id": student.student_id,
+        "name": student.name,
+        "email": student.email,
+        "class_id": student.class_id,
+        "batch_id": student.batch_id
     }

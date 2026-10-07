@@ -3,20 +3,40 @@
     const API_BASE = "http://127.0.0.1:8000";
     const ADMIN_LOGIN_PAGE = "admin-login.html";
 
+
+    // ========================================
+    // COMMON HELPERS
+    // ========================================
+
     function isAdminLoggedIn() {
-        return Boolean(sessionStorage.getItem("admin"));
+        return Boolean(
+            sessionStorage.getItem("admin")
+        );
     }
 
+
     function requireAdmin() {
+
         if (!isAdminLoggedIn()) {
-            window.location.href = ADMIN_LOGIN_PAGE;
+            window.location.href =
+                ADMIN_LOGIN_PAGE;
+
             return false;
         }
+
         return true;
     }
 
+
     function escapeHtml(value) {
-        if (value === null || value === undefined) return "";
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
+            return "";
+        }
+
         return String(value)
             .replaceAll("&", "&amp;")
             .replaceAll("<", "&lt;")
@@ -25,18 +45,43 @@
             .replaceAll("'", "&#039;");
     }
 
+
+    function statusBadge(status) {
+
+        const label =
+            status || "Active";
+
+        return `
+            <span class="admin-badge">
+                ${escapeHtml(label)}
+            </span>
+        `;
+    }
+
+
     function parseUtcDate(timestamp) {
-        if (!timestamp) return null;
+
+        if (!timestamp) {
+            return null;
+        }
+
         const normalized =
             timestamp.endsWith("Z")
                 ? timestamp
                 : timestamp + "Z";
+
         return new Date(normalized);
     }
 
+
     function formatDate(timestamp) {
-        const date = parseUtcDate(timestamp);
-        if (!date) return "--";
+
+        const date =
+            parseUtcDate(timestamp);
+
+        if (!date) {
+            return "--";
+        }
 
         return date.toLocaleDateString(
             "en-IN",
@@ -48,9 +93,15 @@
         );
     }
 
+
     function formatTime(timestamp) {
-        const date = parseUtcDate(timestamp);
-        if (!date) return "--";
+
+        const date =
+            parseUtcDate(timestamp);
+
+        if (!date) {
+            return "--";
+        }
 
         return date.toLocaleTimeString(
             "en-IN",
@@ -61,11 +112,17 @@
         );
     }
 
-    function formatTimeRange(startTime, endTime) {
+
+    function formatTimeRange(
+        startTime,
+        endTime
+    ) {
 
         function formatValue(timeString) {
 
-            if (!timeString) return "--";
+            if (!timeString) {
+                return "--";
+            }
 
             const parts =
                 String(timeString).split(":");
@@ -90,17 +147,6 @@
         return `${formatValue(startTime)} – ${formatValue(endTime)}`;
     }
 
-    function statusBadge(status) {
-
-        const value =
-            String(status || "Active");
-
-        return `
-            <span class="admin-badge">
-                ${escapeHtml(value)}
-            </span>
-        `;
-    }
 
     async function fetchJson(
         endpoint,
@@ -132,6 +178,11 @@
         return data;
     }
 
+
+    // ========================================
+    // LOGOUT
+    // ========================================
+
     function setupLogout() {
 
         const button =
@@ -139,7 +190,9 @@
                 "admin-logout"
             );
 
-        if (!button) return;
+        if (!button) {
+            return;
+        }
 
         button.addEventListener(
             "click",
@@ -154,6 +207,11 @@
             }
         );
     }
+
+
+    // ========================================
+    // ACTIVE NAVIGATION
+    // ========================================
 
     function setupActiveNav() {
 
@@ -172,11 +230,18 @@
                         currentPage
                     ) {
 
-                        link.classList.add("active");
+                        link.classList.add(
+                            "active"
+                        );
                     }
                 }
             );
     }
+
+
+    // ========================================
+    // OVERVIEW
+    // ========================================
 
     async function loadAdminOverview() {
 
@@ -245,6 +310,11 @@
         }
     }
 
+
+    // ========================================
+    // TEACHERS
+    // ========================================
+
     async function loadAdminTeachers() {
 
         const table =
@@ -252,7 +322,9 @@
                 "admin-teachers-table"
             );
 
-        if (!table) return;
+        if (!table) {
+            return;
+        }
 
         try {
 
@@ -261,66 +333,14 @@
                     "/admin/teachers"
                 );
 
-            if (
-                !Array.isArray(teachers) ||
-                teachers.length === 0
-            ) {
+            window.adminTeachers =
+                Array.isArray(teachers)
+                    ? teachers
+                    : [];
 
-                table.innerHTML = `
-                    <tr>
-                        <td colspan="5">
-                            No teachers found.
-                        </td>
-                    </tr>
-                `;
-
-                return;
-            }
-
-            table.innerHTML =
-                teachers.map(
-                    function (teacher) {
-
-                        return `
-                            <tr>
-
-                                <td>
-                                    ${escapeHtml(
-                                        teacher.id
-                                    )}
-                                </td>
-
-                                <td>
-                                    <strong>
-                                        ${escapeHtml(
-                                            teacher.name
-                                        )}
-                                    </strong>
-                                </td>
-
-                                <td>
-                                    ${escapeHtml(
-                                        teacher.email
-                                    )}
-                                </td>
-
-                                <td>
-                                    ${escapeHtml(
-                                        teacher.faculty ||
-                                        "Not assigned"
-                                    )}
-                                </td>
-
-                                <td>
-                                    ${statusBadge(
-                                        "Active"
-                                    )}
-                                </td>
-
-                            </tr>
-                        `;
-                    }
-                ).join("");
+            renderAdminTeachers(
+                window.adminTeachers
+            );
 
         } catch (error) {
 
@@ -331,7 +351,7 @@
 
             table.innerHTML = `
                 <tr>
-                    <td colspan="5">
+                    <td colspan="6">
                         Unable to load teachers.
                     </td>
                 </tr>
@@ -340,8 +360,794 @@
     }
 
 
+    function renderAdminTeachers(
+        teachers
+    ) {
+
+        const table =
+            document.getElementById(
+                "admin-teachers-table"
+            );
+
+        if (!table) {
+            return;
+        }
+
+        if (
+            !Array.isArray(teachers) ||
+            teachers.length === 0
+        ) {
+
+            table.innerHTML = `
+                <tr>
+                    <td colspan="6">
+                        No teachers found.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        table.innerHTML =
+            teachers.map(
+                function (teacher) {
+
+                    const active =
+                        Boolean(
+                            teacher.is_active
+                        );
+
+                    return `
+                        <tr>
+
+                            <td>
+                                ${escapeHtml(
+                                    teacher.id
+                                )}
+                            </td>
+
+                            <td>
+                                <strong>
+                                    ${escapeHtml(
+                                        teacher.name
+                                    )}
+                                </strong>
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    teacher.email
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    teacher.faculty ||
+                                    "Not assigned"
+                                )}
+                            </td>
+
+                            <td>
+                                ${statusBadge(
+                                    active
+                                        ? "Active"
+                                        : "Inactive"
+                                )}
+                            </td>
+
+                            <td>
+                                <button
+                                    class="teacher-action-btn"
+                                    type="button"
+                                    data-teacher-status="${escapeHtml(
+                                        teacher.id
+                                    )}"
+                                    data-active="${active}"
+                                >
+                                    ${
+                                        active
+                                            ? "Deactivate"
+                                            : "Reactivate"
+                                    }
+                                </button>
+                            </td>
+
+                        </tr>
+                    `;
+                }
+            ).join("");
+    }
+
+
+    async function loadTeacherFormOptions() {
+
+        const select =
+            document.getElementById(
+                "teacher-faculty"
+            );
+
+        if (!select) {
+            return;
+        }
+
+        select.innerHTML = `
+            <option value="">
+                Select Faculty
+            </option>
+        `;
+
+        try {
+
+            const faculties =
+                await fetchJson(
+                    "/admin/faculties"
+                );
+
+            if (
+                !Array.isArray(faculties)
+            ) {
+                return;
+            }
+
+            faculties.forEach(
+                function (faculty) {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        faculty.id;
+
+                    option.textContent =
+                        faculty.name;
+
+                    select.appendChild(
+                        option
+                    );
+                }
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Faculty loading error:",
+                error
+            );
+
+            throw error;
+        }
+    }
+
+
+    function setupTeacherManagement() {
+
+        const addButton =
+            document.getElementById(
+                "admin-add-teacher"
+            );
+
+        const modal =
+            document.getElementById(
+                "teacher-modal"
+            );
+
+        const closeButton =
+            document.getElementById(
+                "close-teacher-modal"
+            );
+
+        const form =
+            document.getElementById(
+                "admin-teacher-form"
+            );
+
+        const errorBox =
+            document.getElementById(
+                "teacher-form-error"
+            );
+
+        if (
+            !addButton ||
+            !modal ||
+            !closeButton ||
+            !form
+        ) {
+            return;
+        }
+
+
+        function showError(message) {
+
+            if (!errorBox) {
+                return;
+            }
+
+            errorBox.textContent =
+                message;
+
+            errorBox.style.display =
+                "block";
+        }
+
+
+        function clearError() {
+
+            if (!errorBox) {
+                return;
+            }
+
+            errorBox.textContent =
+                "";
+
+            errorBox.style.display =
+                "none";
+        }
+
+
+        function closeModal() {
+
+            modal.style.display =
+                "none";
+
+            form.reset();
+            clearError();
+        }
+
+
+        addButton.addEventListener(
+            "click",
+            async function () {
+
+                modal.style.display =
+                    "flex";
+
+                clearError();
+
+                try {
+
+                    await loadTeacherFormOptions();
+
+                } catch (error) {
+
+                    showError(
+                        "Unable to load faculties."
+                    );
+                }
+            }
+        );
+
+
+        closeButton.addEventListener(
+            "click",
+            closeModal
+        );
+
+
+        modal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target === modal
+                ) {
+                    closeModal();
+                }
+            }
+        );
+
+
+        form.addEventListener(
+            "submit",
+            async function (event) {
+
+                event.preventDefault();
+
+                clearError();
+
+
+                const payload = {
+
+                    name:
+                        document.getElementById(
+                            "teacher-name"
+                        ).value.trim(),
+
+                    email:
+                        document.getElementById(
+                            "teacher-email"
+                        ).value.trim(),
+
+                    password:
+                        document.getElementById(
+                            "teacher-password"
+                        ).value,
+
+                    faculty_id:
+                        Number(
+                            document.getElementById(
+                                "teacher-faculty"
+                            ).value
+                        )
+                };
+
+
+                if (
+                    !payload.name ||
+                    !payload.email ||
+                    !payload.password ||
+                    !payload.faculty_id
+                ) {
+
+                    showError(
+                        "Please fill in all required fields."
+                    );
+
+                    return;
+                }
+
+
+                try {
+
+                    await fetchJson(
+                        "/admin/teachers",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+
+                    closeModal();
+
+                    alert(
+                        "Teacher created successfully."
+                    );
+
+                    await loadAdminTeachers();
+
+                    await loadAdminOverview();
+
+                } catch (error) {
+
+                    console.error(
+                        "Create teacher error:",
+                        error
+                    );
+
+                    showError(
+                        error.message
+                    );
+                }
+            }
+        );
+    }
+
+
+
+        // ========================================
+    // FACULTIES
     // ========================================
-    // M9.9 - STUDENTS
+
+    async function loadAdminFaculties() {
+
+        const table =
+            document.getElementById(
+                "admin-faculties-table"
+            );
+
+        if (!table) {
+            return;
+        }
+
+        try {
+
+            const faculties =
+                await fetchJson(
+                    "/admin/faculties"
+                );
+
+            window.adminFaculties =
+                Array.isArray(faculties)
+                    ? faculties
+                    : [];
+
+            renderAdminFaculties(
+                window.adminFaculties
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Admin faculties error:",
+                error
+            );
+
+            table.innerHTML = `
+                <tr>
+                    <td colspan="4">
+                        Unable to load faculties.
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+
+    function renderAdminFaculties(
+        faculties
+    ) {
+
+        const table =
+            document.getElementById(
+                "admin-faculties-table"
+            );
+
+        if (!table) {
+            return;
+        }
+
+
+        if (
+            !Array.isArray(faculties) ||
+            faculties.length === 0
+        ) {
+
+            table.innerHTML = `
+                <tr>
+                    <td colspan="4">
+                        No faculties found.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        table.innerHTML =
+            faculties.map(
+                function (faculty) {
+
+                    return `
+                        <tr>
+
+                            <td>
+                                ${escapeHtml(
+                                    faculty.id
+                                )}
+                            </td>
+
+                            <td>
+                                <strong>
+                                    ${escapeHtml(
+                                        faculty.name
+                                    )}
+                                </strong>
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    faculty.email ||
+                                    "--"
+                                )}
+                            </td>
+
+                            <td>
+                                <button
+                                    type="button"
+                                    class="faculty-delete-button"
+                                    data-faculty-delete="${escapeHtml(
+                                        faculty.id
+                                    )}"
+                                >
+                                    Delete
+                                </button>
+                            </td>
+
+                        </tr>
+                    `;
+                }
+            ).join("");
+    }
+
+
+    function setupFacultyManagement() {
+
+        const addButton =
+            document.getElementById(
+                "admin-add-faculty"
+            );
+
+        const modal =
+            document.getElementById(
+                "faculty-modal"
+            );
+
+        const closeButton =
+            document.getElementById(
+                "close-faculty-modal"
+            );
+
+        const form =
+            document.getElementById(
+                "admin-faculty-form"
+            );
+
+        const errorBox =
+            document.getElementById(
+                "faculty-form-error"
+            );
+
+        if (
+            !addButton ||
+            !modal ||
+            !closeButton ||
+            !form
+        ) {
+            return;
+        }
+
+
+        function showError(message) {
+
+            if (!errorBox) {
+                return;
+            }
+
+            errorBox.textContent =
+                message;
+
+            errorBox.style.display =
+                "block";
+        }
+
+
+        function clearError() {
+
+            if (!errorBox) {
+                return;
+            }
+
+            errorBox.textContent =
+                "";
+
+            errorBox.style.display =
+                "none";
+        }
+
+
+        function closeModal() {
+
+            modal.style.display =
+                "none";
+
+            form.reset();
+
+            clearError();
+        }
+
+
+        addButton.addEventListener(
+            "click",
+            function () {
+
+                modal.style.display =
+                    "flex";
+
+                clearError();
+
+                const nameInput =
+                    document.getElementById(
+                        "faculty-name"
+                    );
+
+                if (nameInput) {
+                    nameInput.focus();
+                }
+            }
+        );
+
+
+        closeButton.addEventListener(
+            "click",
+            closeModal
+        );
+
+
+        modal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target === modal
+                ) {
+                    closeModal();
+                }
+            }
+        );
+
+
+        form.addEventListener(
+            "submit",
+            async function (event) {
+
+                event.preventDefault();
+
+                clearError();
+
+
+                const nameInput =
+                    document.getElementById(
+                        "faculty-name"
+                    );
+
+                const emailInput =
+                    document.getElementById(
+                        "faculty-email"
+                    );
+
+
+                const payload = {
+
+                    name:
+                        nameInput
+                            ? nameInput.value.trim()
+                            : "",
+
+                    email:
+                        emailInput
+                            ? (
+                                emailInput.value.trim() ||
+                                null
+                            )
+                            : null
+                };
+
+
+                if (!payload.name) {
+
+                    showError(
+                        "Please enter a faculty name."
+                    );
+
+                    return;
+                }
+
+
+                try {
+
+                    await fetchJson(
+                        "/admin/faculties",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+
+                    closeModal();
+
+                    alert(
+                        "Faculty created successfully."
+                    );
+
+                    await loadAdminFaculties();
+
+                    await loadTeacherFormOptions();
+
+                } catch (error) {
+
+                    console.error(
+                        "Create faculty error:",
+                        error
+                    );
+
+                    showError(
+                        error.message
+                    );
+                }
+            }
+        );
+
+
+        document.addEventListener(
+            "click",
+            async function (event) {
+
+                const button =
+                    event.target.closest(
+                        "[data-faculty-delete]"
+                    );
+
+                if (!button) {
+                    return;
+                }
+
+
+                const facultyId =
+                    button.getAttribute(
+                        "data-faculty-delete"
+                    );
+
+
+                if (!facultyId) {
+                    return;
+                }
+
+
+                const confirmed =
+                    confirm(
+                        "Are you sure you want to delete this faculty?"
+                    );
+
+
+                if (!confirmed) {
+                    return;
+                }
+
+
+                try {
+
+                    await fetchJson(
+                        `/admin/faculties/${facultyId}`,
+                        {
+                            method: "DELETE"
+                        }
+                    );
+
+
+                    alert(
+                        "Faculty deleted successfully."
+                    );
+
+
+                    await loadAdminFaculties();
+
+                    await loadTeacherFormOptions();
+
+                } catch (error) {
+
+                    console.error(
+                        "Delete faculty error:",
+                        error
+                    );
+
+
+                    alert(
+                        error.message ||
+                        "Unable to delete faculty."
+                    );
+                }
+            }
+        );
+    }
+
+
+
+    // ========================================
+    // STUDENTS
     // ========================================
 
     async function loadAdminStudents() {
@@ -351,7 +1157,9 @@
                 "admin-students-table"
             );
 
-        if (!table) return;
+        if (!table) {
+            return;
+        }
 
         try {
 
@@ -387,14 +1195,19 @@
     }
 
 
-    function renderAdminStudents(students) {
+    function renderAdminStudents(
+        students
+    ) {
 
         const table =
             document.getElementById(
                 "admin-students-table"
             );
 
-        if (!table) return;
+        if (!table) {
+            return;
+        }
+
 
         if (
             !Array.isArray(students) ||
@@ -411,6 +1224,7 @@
 
             return;
         }
+
 
         table.innerHTML =
             students.map(
@@ -467,7 +1281,6 @@
                             </td>
 
                             <td>
-
                                 <button
                                     class="student-action-btn"
                                     type="button"
@@ -482,7 +1295,6 @@
                                             : "Reactivate"
                                     }
                                 </button>
-
                             </td>
 
                         </tr>
@@ -511,11 +1323,13 @@
             return;
         }
 
+
         classSelect.innerHTML = `
             <option value="">
                 Select class
             </option>
         `;
+
 
         batchSelect.innerHTML = `
             <option value="">
@@ -523,59 +1337,79 @@
             </option>
         `;
 
-        const [
-            classes,
-            batches
-        ] =
-            await Promise.all([
-                fetchJson("/admin/classes"),
-                fetchJson("/admin/batches")
-            ]);
 
-        if (Array.isArray(classes)) {
+        try {
 
-            classes.forEach(
-                function (classItem) {
+            const [
+                classes,
+                batches
+            ] =
+                await Promise.all([
+                    fetchJson(
+                        "/admin/classes"
+                    ),
 
-                    const option =
-                        document.createElement(
-                            "option"
+                    fetchJson(
+                        "/admin/batches"
+                    )
+                ]);
+
+
+            if (Array.isArray(classes)) {
+
+                classes.forEach(
+                    function (classItem) {
+
+                        const option =
+                            document.createElement(
+                                "option"
+                            );
+
+                        option.value =
+                            classItem.id;
+
+                        option.textContent =
+                            classItem.name;
+
+                        classSelect.appendChild(
+                            option
                         );
+                    }
+                );
+            }
 
-                    option.value =
-                        classItem.id;
 
-                    option.textContent =
-                        classItem.name;
+            if (Array.isArray(batches)) {
 
-                    classSelect.appendChild(
-                        option
-                    );
-                }
-            );
-        }
+                batches.forEach(
+                    function (batch) {
 
-        if (Array.isArray(batches)) {
+                        const option =
+                            document.createElement(
+                                "option"
+                            );
 
-            batches.forEach(
-                function (batch) {
+                        option.value =
+                            batch.id;
 
-                    const option =
-                        document.createElement(
-                            "option"
+                        option.textContent =
+                            batch.name;
+
+                        batchSelect.appendChild(
+                            option
                         );
+                    }
+                );
+            }
 
-                    option.value =
-                        batch.id;
+        } catch (error) {
 
-                    option.textContent =
-                        batch.name;
-
-                    batchSelect.appendChild(
-                        option
-                    );
-                }
+            console.error(
+                "Student options error:",
+                error
             );
+
+            throw error;
         }
     }
 
@@ -624,7 +1458,9 @@
 
         function showError(message) {
 
-            if (!errorBox) return;
+            if (!errorBox) {
+                return;
+            }
 
             errorBox.textContent =
                 message;
@@ -636,7 +1472,9 @@
 
         function clearError() {
 
-            if (!errorBox) return;
+            if (!errorBox) {
+                return;
+            }
 
             errorBox.textContent =
                 "";
@@ -672,11 +1510,6 @@
 
                 } catch (error) {
 
-                    console.error(
-                        "Student form options error:",
-                        error
-                    );
-
                     showError(
                         "Unable to load classes and batches."
                     );
@@ -696,10 +1529,8 @@
             function (event) {
 
                 if (
-                    event.target ===
-                    modal
+                    event.target === modal
                 ) {
-
                     closeModal();
                 }
             }
@@ -809,6 +1640,8 @@
 
                     await loadAdminStudents();
 
+                    await loadAdminOverview();
+
                 } catch (error) {
 
                     console.error(
@@ -864,79 +1697,170 @@
                 }
             );
         }
+    }
 
+
+    // ========================================
+    // GLOBAL STATUS BUTTONS
+    // ========================================
+
+    function setupStatusActions() {
 
         document.addEventListener(
             "click",
             async function (event) {
 
-                const button =
+                // ----------------------------
+                // TEACHER
+                // ----------------------------
+
+                const teacherButton =
                     event.target.closest(
-                        "[data-student-status]"
+                        "[data-teacher-status]"
                     );
 
-                if (!button) return;
+
+                if (teacherButton) {
+
+                    const teacherId =
+                        teacherButton.dataset
+                            .teacherStatus;
+
+                    const active =
+                        teacherButton.dataset
+                            .active === "true";
+
+                    const action =
+                        active
+                            ? "deactivate"
+                            : "reactivate";
 
 
-                const studentId =
-                    button.dataset.studentStatus;
+                    if (
+                        !confirm(
+                            `Are you sure you want to ${action} teacher ${teacherId}?`
+                        )
+                    ) {
+                        return;
+                    }
 
 
-                const currentlyActive =
-                    button.dataset.active ===
-                    "true";
+                    try {
+
+                        await fetchJson(
+                            `/admin/teachers/${encodeURIComponent(
+                                teacherId
+                            )}/status`,
+                            {
+                                method: "PATCH",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+
+                                body:
+                                    JSON.stringify({
+                                        is_active:
+                                            !active
+                                    })
+                            }
+                        );
 
 
-                const action =
-                    currentlyActive
-                        ? "deactivate"
-                        : "reactivate";
+                        await loadAdminTeachers();
 
+                        await loadAdminOverview();
 
-                if (
-                    !confirm(
-                        `Are you sure you want to ${action} ${studentId}?`
-                    )
-                ) {
+                    } catch (error) {
+
+                        console.error(
+                            "Teacher status error:",
+                            error
+                        );
+
+                        alert(
+                            error.message
+                        );
+                    }
+
                     return;
                 }
 
 
-                try {
+                // ----------------------------
+                // STUDENT
+                // ----------------------------
 
-                    await fetchJson(
-                        `/admin/students/${encodeURIComponent(
-                            studentId
-                        )}/status`,
-                        {
-                            method: "PATCH",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body:
-                                JSON.stringify({
-                                    is_active:
-                                        !currentlyActive
-                                })
-                        }
+                const studentButton =
+                    event.target.closest(
+                        "[data-student-status]"
                     );
 
 
-                    await loadAdminStudents();
+                if (studentButton) {
 
-                } catch (error) {
+                    const studentId =
+                        studentButton.dataset
+                            .studentStatus;
 
-                    console.error(
-                        "Student status update error:",
-                        error
-                    );
+                    const active =
+                        studentButton.dataset
+                            .active === "true";
 
-                    alert(
-                        error.message
-                    );
+                    const action =
+                        active
+                            ? "deactivate"
+                            : "reactivate";
+
+
+                    if (
+                        !confirm(
+                            `Are you sure you want to ${action} ${studentId}?`
+                        )
+                    ) {
+                        return;
+                    }
+
+
+                    try {
+
+                        await fetchJson(
+                            `/admin/students/${encodeURIComponent(
+                                studentId
+                            )}/status`,
+                            {
+                                method: "PATCH",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+
+                                body:
+                                    JSON.stringify({
+                                        is_active:
+                                            !active
+                                    })
+                            }
+                        );
+
+
+                        await loadAdminStudents();
+
+                        await loadAdminOverview();
+
+                    } catch (error) {
+
+                        console.error(
+                            "Student status error:",
+                            error
+                        );
+
+                        alert(
+                            error.message
+                        );
+                    }
                 }
             }
         );
@@ -944,7 +1868,7 @@
 
 
     // ========================================
-    // M9.11 - BATCHES
+    // BATCHES
     // ========================================
 
     async function loadAdminBatches() {
@@ -954,7 +1878,9 @@
                 "admin-batches-table"
             );
 
-        if (!table) return;
+        if (!table) {
+            return;
+        }
 
         try {
 
@@ -978,6 +1904,7 @@
 
                 return;
             }
+
 
             table.innerHTML =
                 batches.map(
@@ -1030,7 +1957,7 @@
 
 
     // ========================================
-    // M9.12 - CLASSES
+    // CLASSES
     // ========================================
 
     async function loadAdminClasses() {
@@ -1040,7 +1967,9 @@
                 "admin-classes-table"
             );
 
-        if (!table) return;
+        if (!table) {
+            return;
+        }
 
         try {
 
@@ -1064,6 +1993,7 @@
 
                 return;
             }
+
 
             table.innerHTML =
                 classes.map(
@@ -1135,7 +2065,7 @@
 
 
     // ========================================
-    // M9.13 - SUBJECTS
+    // SUBJECTS
     // ========================================
 
     async function loadAdminSubjects() {
@@ -1145,7 +2075,9 @@
                 "admin-subjects-table"
             );
 
-        if (!table) return;
+        if (!table) {
+            return;
+        }
 
         try {
 
@@ -1169,6 +2101,7 @@
 
                 return;
             }
+
 
             table.innerHTML =
                 subjects.map(
@@ -1215,7 +2148,7 @@
 
 
     // ========================================
-    // M9.14 - TIMETABLE
+    // TIMETABLE
     // ========================================
 
     async function loadAdminTimetable() {
@@ -1225,7 +2158,9 @@
                 "admin-timetable-table"
             );
 
-        if (!table) return;
+        if (!table) {
+            return;
+        }
 
         try {
 
@@ -1249,6 +2184,7 @@
 
                 return;
             }
+
 
             table.innerHTML =
                 timetable.map(
@@ -1324,7 +2260,7 @@
 
 
     // ========================================
-    // M9.15 - ATTENDANCE
+    // ATTENDANCE
     // ========================================
 
     async function loadAdminAttendance() {
@@ -1334,7 +2270,9 @@
                 "admin-attendance-table"
             );
 
-        if (!table) return;
+        if (!table) {
+            return;
+        }
 
         try {
 
@@ -1358,6 +2296,7 @@
 
                 return;
             }
+
 
             table.innerHTML =
                 sessions.map(
@@ -1444,7 +2383,7 @@
 
 
     // ========================================
-    // M9.16 - REPORTS
+    // REPORTS
     // ========================================
 
     async function loadAdminReports() {
@@ -1494,8 +2433,10 @@
                     )
                 ]);
 
+
             let totalPossible = 0;
             let totalPresent = 0;
+
 
             if (
                 Array.isArray(reports)
@@ -1520,6 +2461,7 @@
                 );
             }
 
+
             const percentage =
                 totalPossible > 0
                     ? (
@@ -1528,11 +2470,13 @@
                     ) * 100
                     : 0;
 
+
             if (overallAttendance) {
 
                 overallAttendance.textContent =
                     `${percentage.toFixed(1)}%`;
             }
+
 
             if (activeStudents) {
 
@@ -1540,13 +2484,18 @@
                     overview.total_students ?? 0;
             }
 
+
             if (totalSessions) {
 
                 totalSessions.textContent =
                     overview.total_attendance_sessions ?? 0;
             }
 
-            if (!table) return;
+
+            if (!table) {
+                return;
+            }
+
 
             if (
                 !Array.isArray(reports) ||
@@ -1563,6 +2512,7 @@
 
                 return;
             }
+
 
             table.innerHTML =
                 reports.map(
@@ -1649,17 +2599,26 @@
         return;
     }
 
+
     setupLogout();
 
     setupActiveNav();
+
+    setupTeacherManagement();
+
+    setupFacultyManagement();
+
+    setupStudentManagement();
+
+    setupStatusActions();
 
     loadAdminOverview();
 
     loadAdminTeachers();
 
-    loadAdminStudents();
+    loadAdminFaculties();
 
-    setupStudentManagement();
+    loadAdminStudents();
 
     loadAdminBatches();
 
